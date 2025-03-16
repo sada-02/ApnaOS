@@ -2,7 +2,7 @@ OUTPUT_FORMAT(elf32-i386)
 ENTRY(_start)
 
 PHDRS {
-    text PT_LOAD FLAGS(4);  /* Read + Execute */
+    text PT_LOAD FLAGS(5);  /* Read + Execute */
     data PT_LOAD FLAGS(6);  /* Read + Write */
 }
 
@@ -22,5 +22,8 @@ SECTIONS {
         *(.data)       /* Writable data */
         *(.bss)        /* Uninitialized data */
     } :data
-}
 
+    .stack ALIGN(16) : {
+        *(.stack)      /* Stack section */
+    } :data
+}
