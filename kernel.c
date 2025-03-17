@@ -1,7 +1,8 @@
 #include <stdint.h>
 #include <stddef.h>
-#include "process.h"  // Added for process management integration
+#include "process.h"
 #include "memory.h"
+#include "filesystem.h"  // Include the filesystem header
 
 // Global variable to track the current line (each line is 80 characters)
 static uint16_t vga_line = 0;
@@ -62,11 +63,6 @@ void debug_print(const char* msg) {
     print_to_screen(msg);
 }
 
-
-// ============================================
-// New Changes: Process Management Integration
-// ============================================
-
 // Forward declaration for the process management test function.
 // This function should be defined in process_test.c and will create dummy processes,
 // schedule them, and print their output to the screen.
@@ -82,6 +78,9 @@ void kernel_main(uint32_t multiboot_info) {
 
     // Initialize process management system.
     init_process_management();
+
+    // Initialize the filesystem.
+    create_file_system();
 
     print_to_screen("DEBUG: Starting process management test.\n");
     // Execute the process management test (dummy processes are created and scheduled).
