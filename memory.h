@@ -45,6 +45,6 @@ BootInfoFrameAllocator init_frame_allocator(MemoryRegion* regions, size_t region
 void* allocate_frame(BootInfoFrameAllocator* allocator);
 
 // The kernel main function – note the single parameter: pointer to multiboot info.
-void kernel_main(uint32_t multiboot_info);
+void memory_init(uint32_t multiboot_info);
 
 #endif // MEMORY_H

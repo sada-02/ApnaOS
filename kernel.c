@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
+#include "process.h"  // Added for process management integration
+#include "memory.h"
 
 // Global variable to track the current line (each line is 80 characters)
 static uint16_t vga_line = 0;
@@ -58,4 +60,37 @@ void int_to_dec(uint32_t num, char *buffer) {
 // A simple wrapper for debugging output.
 void debug_print(const char* msg) {
     print_to_screen(msg);
+}
+
+
+// ============================================
+// New Changes: Process Management Integration
+// ============================================
+
+// Forward declaration for the process management test function.
+// This function should be defined in process_test.c and will create dummy processes,
+// schedule them, and print their output to the screen.
+extern void process_test(void);
+
+// The kernel entry point called from your bootloader (e.g., boot.asm).
+// This function initializes process management and then runs the process test.
+void kernel_main(uint32_t multiboot_info) {
+    print_to_screen("DEBUG: Entering kernel_main.\n");
+
+    // Initialize memory (call memory_init from memory.c)
+    memory_init(multiboot_info);
+
+    // Initialize process management system.
+    init_process_management();
+
+    print_to_screen("DEBUG: Starting process management test.\n");
+    // Execute the process management test (dummy processes are created and scheduled).
+    process_test();
+
+    print_to_screen("DEBUG: Kernel execution complete.\n");
+
+    // Halt the CPU indefinitely.
+    while (1) {
+        asm volatile ("hlt");
+    }
 }

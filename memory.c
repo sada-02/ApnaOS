@@ -79,7 +79,7 @@ void* allocate_frame(BootInfoFrameAllocator* allocator) {
 }
 
 // Kernel entry point. The multiboot_info pointer is passed from boot.asm (via ebx).
-void kernel_main(uint32_t multiboot_info) {
+void memory_init(uint32_t multiboot_info) {
     print_to_screen("DEBUG: Entering kernel_main.");
     
     // Initialize paging (dummy example).
