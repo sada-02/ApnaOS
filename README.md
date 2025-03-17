@@ -14,11 +14,8 @@ gcc -m32 -ffreestanding -c test_processes/dummy1.c -o dummy1.o
 gcc -m32 -ffreestanding -c test_processes/dummy2.c -o dummy2.o
 gcc -m32 -ffreestanding -c test_processes/dummy3.c -o dummy3.o
 
-# (If using a separate debug.c, compile it too)
-# gcc -m32 -ffreestanding -c debug.c -o debug.o
-
 # 3. Link all object files into a kernel binary.
-# If you compiled debug.o, include it in the list.
+If you compiled debug.o, include it in the list.
 ld -m elf_i386 -T linker.ld -o kernel.bin boot.o kernel.o memory.o process.o process_test.o dummy1.o dummy2.o dummy3.o
 
 # 4. Set up the GRUB boot structure.
