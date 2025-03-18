@@ -2,19 +2,23 @@
 #include <stddef.h>
 #include "process.h"
 #include "memory.h"
-#include "filesystem.h"  // Include the filesystem header
+#include "serial.h"
+
+// We'll keep the existing VGA-based print_to_screen in case you still want
+// minimal text output on the QEMU display. But all "debug_print" calls will
+// go to the serial console now.
 
 // Global variable to track the current line (each line is 80 characters)
 static uint16_t vga_line = 0;
 
-// Write a string to the VGA text memory on a new line.
+// Write a string to the VGA text memory on a new line (optional).
 void print_to_screen(const char* message) {
     char *video_memory = (char*) 0xB8000;
     int i = 0;
     int offset = vga_line * 80 * 2;  // 80 characters per line, 2 bytes per character
     while (message[i] != '\0') {
         video_memory[offset + i*2] = message[i];  // Character
-        video_memory[offset + i*2 + 1] = 0x07;      // White text on black background
+        video_memory[offset + i*2 + 1] = 0x07;    // White text on black background
         i++;
     }
     vga_line++;
@@ -33,7 +37,6 @@ void int_to_hex(uint32_t num, char *buffer) {
 }
 
 // Convert a 32-bit unsigned integer to a decimal string.
-// The buffer should be large enough to hold the result (suggest at least 16 bytes).
 void int_to_dec(uint32_t num, char *buffer) {
     char temp[16];
     int pos = 0;
@@ -59,34 +62,34 @@ void int_to_dec(uint32_t num, char *buffer) {
 }
 
 // A simple wrapper for debugging output.
+// Instead of using VGA, we'll redirect to serial.
 void debug_print(const char* msg) {
-    print_to_screen(msg);
+    serial_print(msg);         // Print to serial console
+    serial_print("\r\n");      // Add newline for clarity
 }
 
 // Forward declaration for the process management test function.
-// This function should be defined in process_test.c and will create dummy processes,
-// schedule them, and print their output to the screen.
 extern void process_test(void);
 
-// The kernel entry point called from your bootloader (e.g., boot.asm).
-// This function initializes process management and then runs the process test.
+// The kernel entry point called from your bootloader.
 void kernel_main(uint32_t multiboot_info) {
-    print_to_screen("DEBUG: Entering kernel_main.\n");
+    // Initialize serial for debug messages
+    serial_init();
+    debug_print("DEBUG: Entering kernel_main.");
 
-    // Initialize memory (call memory_init from memory.c)
+    // Initialize memory
     memory_init(multiboot_info);
+    debug_print("DEBUG: Memory initialized.");
 
     // Initialize process management system.
     init_process_management();
+    debug_print("DEBUG: Process management initialized.");
 
-    // Initialize the filesystem.
-    create_file_system();
-
-    print_to_screen("DEBUG: Starting process management test.\n");
-    // Execute the process management test (dummy processes are created and scheduled).
+    debug_print("DEBUG: Starting process management test.");
+    // Execute the process management test
     process_test();
 
-    print_to_screen("DEBUG: Kernel execution complete.\n");
+    debug_print("DEBUG: Kernel execution complete.");
 
     // Halt the CPU indefinitely.
     while (1) {
