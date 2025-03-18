@@ -3,6 +3,7 @@
 #include "string.h"  // if needed
 #include <stdint.h>
 #include <stddef.h>
+#include "keyboard.h"
 
 void *memcpy(void *dest, const void *src, size_t n) { char *d = dest; const char *s = src; while (n--) { *d++ = *s++; } return dest; }
 extern void print_to_screen(const char*);
@@ -241,4 +242,16 @@ void sys_exit(int status) {
     curr->state = PROCESS_TERMINATED;
     schedule();
     while (1);
+}
+
+int sys_read(int fd, void* buffer, size_t size) {
+    if (!buffer || size == 0)
+        return -1;
+
+    // For now, only handle standard input (fd == 0).
+    if (fd == 0) {
+        return read_line((char*)buffer, size);
+    }
+
+    return -1; // Unsupported file descriptor.
 }
