@@ -1,8 +1,32 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "process.h"
-#include "memory.h"
+// #include "memory.h"
+#include "basicmemory.h"
 #include "serial.h"
+
+void itoa(int n, char *str) {
+    int i = 0;
+    int sign = n;
+    if (sign < 0) {
+        n = -n;
+    }
+    do {
+        str[i++] = n % 10 + '0';
+        n /= 10;
+    } while (n > 0);
+    if (sign < 0) {
+        str[i++] = '-';
+    }
+    str[i] = '\0';
+    int j = 0;
+    char temp;
+    for (j = 0; j < i / 2; j++) {
+        temp = str[j];
+        str[j] = str[i - j - 1];
+        str[i - j - 1] = temp;
+    }
+}
 
 // We'll keep the existing VGA-based print_to_screen in case you still want
 // minimal text output on the QEMU display. But all "debug_print" calls will
@@ -22,6 +46,15 @@ void print_to_screen(const char* message) {
         i++;
     }
     vga_line++;
+}
+
+// Converts a 32-bit number to a hexadecimal string and prints it
+void debug_int(uint32_t val) {
+    char buffer[16];  // "0x" + 8 hex digits + '\0'
+    itoa(val, buffer);
+
+    serial_print(buffer);
+    serial_print("\r\n");  // Newline for better readability
 }
 
 // Convert a 32-bit unsigned integer to a hexadecimal string.
@@ -81,13 +114,17 @@ void kernel_main(uint32_t multiboot_info) {
     memory_init(multiboot_info);
     debug_print("DEBUG: Memory initialized.");
 
-    // Initialize process management system.
-    init_process_management();
-    debug_print("DEBUG: Process management initialized.");
+   // Initialize system calls
+//    init_syscalls();
+//    debug_print("DEBUG: System calls initialized.");
 
-    debug_print("DEBUG: Starting process management test.");
-    // Execute the process management test
-    process_test();
+   // Initialize process management system
+   init_process_management();
+   debug_print("DEBUG: Process management initialized.");
+
+   debug_print("DEBUG: Starting process management test.");
+   // Execute the process management test
+   process_test();
 
     debug_print("DEBUG: Kernel execution complete.");
 
