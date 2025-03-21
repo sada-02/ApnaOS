@@ -1,5 +1,5 @@
 #include "process.h"
-#include "basicmemory.h"
+#include "memory.h"
 
 /* Global variables */
 PCB* current_process = NULL;
