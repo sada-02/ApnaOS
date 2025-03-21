@@ -1,6 +1,6 @@
 /* process_test.c - Comprehensive process management test */
 #include "process.h"
-#include "basicmemory.h"
+#include "memory.h"
 
 /* Test process function prototypes */
 void test_process_1(void);
