@@ -6,8 +6,7 @@ nasm -f elf32 boot.asm -o boot.o
 
 echo "Compiling C files..."
 gcc -m32 -ffreestanding -c kernel.c -o kernel.o
-# gcc -m32 -ffreestanding -c memory.c -o memory.o
-gcc -m32 -ffreestanding -c basicmemory.c -o basicmemory.o
+gcc -m32 -ffreestanding -c memory.c -o memory.o
 gcc -m32 -ffreestanding -c process.c -o process.o
 gcc -m32 -ffreestanding -c process_test.c -o process_test.o
 gcc -m32 -ffreestanding -c serial.c -o serial.o
@@ -25,7 +24,7 @@ gcc -m32 -ffreestanding -c keyboard.c -o keyboard.o
 echo "Linking kernel binary..."
 gcc -m32 -ffreestanding -nostdlib -T linker.ld -o kernel.bin \
     boot.o kernel.o process.o process_test.o \
-    serial.o keyboard.o basicmemory.o\
+    serial.o keyboard.o memory.o\
     #memory.o context_switch_handler.o timer_int_handler.o switch_context.o
     
 echo "Setting up GRUB boot structure..."
