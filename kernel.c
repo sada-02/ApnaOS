@@ -1,8 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "process.h"
-// #include "memory.h"
-#include "basicmemory.h"
+#include "memory.h"
 #include "serial.h"
 
 void itoa(int n, char *str) {
