@@ -1,29 +1,27 @@
-OUTPUT_FORMAT(elf32-i386)
-ENTRY(_start)
-
-PHDRS {
-    text PT_LOAD FLAGS(5);  /* Read + Execute */
-    data PT_LOAD FLAGS(6);  /* Read + Write */
-}
-
+ENTRY(kernel_main)
 SECTIONS {
-    . = 1M;  /* Load the kernel at 1MB */
+    . = 0x00100000;  /* load address of the kernel (example: 1MB) */
 
-    .multiboot ALIGN(4K) : {
-        *(.multiboot)  /* Ensure Multiboot header is at the beginning */
-    } :text
+    /* Place the multiboot header first */
+    .multiboot :
+    {
+        KEEP(*(.multiboot))
+    }
 
-    .text ALIGN(4K) : {
-        *(.text)       /* Code */
-        *(.rodata)     /* Read-only data */
-    } :text
+    .text : {
+        *(.text*)
+    }
 
-    .data ALIGN(4K) : {
-        *(.data)       /* Writable data */
-        *(.bss)        /* Uninitialized data */
-    } :data
+    .rodata : {
+        *(.rodata*)
+    }
 
-    .stack ALIGN(16) : {
-        *(.stack)      /* Stack section */
-    } :data
+    .data : {
+        *(.data*)
+    }
+
+    .bss : {
+        *(.bss*)
+        *(COMMON)
+    }
 }
