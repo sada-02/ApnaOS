@@ -20,23 +20,17 @@ gcc -m32 -ffreestanding -c io.c -o io.o
 gcc -m32 -ffreestanding -c idt.c -o idt.o
 gcc -m32 -ffreestanding -c pic.c -o pic.o
 gcc -m32 -ffreestanding -c interrupts.c -o interrupts.o
-# gcc -m32 -ffreestanding -c test_processes/dummy1.c -o dummy1.o
-# gcc -m32 -ffreestanding -c test_processes/dummy2.c -o dummy2.o
-# gcc -m32 -ffreestanding -c test_processes/dummy3.c -o dummy3.o
-# gcc -m32 -ffreestanding -c test_processes/fork_exec_test.c -o fork_exec_test.o
-# gcc -m32 -ffreestanding -c context_switch_handler.c -o context_switch_handler.o
-
-# echo "Assembling advanced context switch routine..."
-# gcc -m32 -ffreestanding -c timer_int_handler.s -o timer_int_handler.o
-# gcc -m32 -ffreestanding -c switch_context.s -o switch_context.o
+gcc -m32 -ffreestanding -c string.c -o string.o
+gcc -m32 -ffreestanding -c test_processes/dummy1.c -o dummy1.o
+gcc -m32 -ffreestanding -c test_processes/dummy2.c -o dummy2.o
+gcc -m32 -ffreestanding -c test_processes/dummy3.c -o dummy3.o
 
 echo "Linking kernel binary..."
 ld -m elf_i386 -T linker.ld -o kernel.bin \
     boot.o kernel.o process.o process_test.o serial.o keyboard.o memory.o \
-    io.o idt.o idt_asm.o irq_asm.o pic.o interrupts.o gdt.o gdt_c.o exceptions.o 
+    io.o idt.o idt_asm.o irq_asm.o pic.o interrupts.o gdt.o gdt_c.o exceptions.o \
+    string.o dummy1.o dummy2.o dummy3.o
 
-    #memory.o context_switch_handler.o timer_int_handler.o switch_context.o
-    
 echo "Setting up GRUB boot structure..."
 mkdir -p iso/boot/grub
 cp kernel.bin iso/boot/
