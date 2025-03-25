@@ -12,6 +12,7 @@ echo "Compiling C files..."
 gcc -m32 -ffreestanding -c kernel.c -o kernel.o
 gcc -m32 -ffreestanding -c gdt.c -o gdt_c.o
 gcc -m32 -ffreestanding -c memory.c -o memory.o
+gcc -m32 -ffreestanding -c filesystem.c -o filesystem.o
 gcc -m32 -ffreestanding -c serial.c -o serial.o
 gcc -m32 -ffreestanding -c process.c -o process.o
 gcc -m32 -ffreestanding -c process_test.c -o process_test.o
@@ -29,7 +30,7 @@ echo "Linking kernel binary..."
 ld -m elf_i386 -T linker.ld -o kernel.bin \
     boot.o kernel.o process.o process_test.o serial.o keyboard.o memory.o \
     io.o idt.o idt_asm.o irq_asm.o pic.o interrupts.o gdt.o gdt_c.o exceptions.o \
-    string.o dummy1.o dummy2.o dummy3.o
+    string.o dummy1.o dummy2.o dummy3.o filesystem.o
 
 echo "Setting up GRUB boot structure..."
 mkdir -p iso/boot/grub

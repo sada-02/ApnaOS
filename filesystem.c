@@ -1,16 +1,17 @@
-#include "filesystem.h"
 #include <stddef.h>
 #include <stdint.h>
-#include <string.h>
+#include "string.h"
+#include "filesystem.h"
 
-#define BLOCK_COUNT 1024
-#define BLOCK_SIZE 4096
+#define BLOCK_COUNT 1024 // No of blocks
+#define BLOCK_SIZE 4096 // 4 KB
+#define MAX_BLOCKS_PER_FILE 2 // 2 blocks or 8 KB size
 
 // Global file system structures
 Superblock sb;
 Inode inode_table[MAX_FILES];
 DirectoryEntry root_directory[MAX_FILES];
-char storage[BLOCK_COUNT][BLOCK_SIZE]; // Simulated disk storage
+char storage[BLOCK_COUNT][BLOCK_SIZE]; // Simulated disk storage of size 4 MB
 int block_bitmap[BLOCK_COUNT]; // 1 = used, 0 = free
 
 extern void print_to_screen(const char* message);
@@ -38,13 +39,13 @@ void format_disk() {
         block_bitmap[i] = 0;
     }
 
-    print_to_screen("DEBUG: Disk formatted and file system reset.");
+    print_to_screen("DEBUG: Disk formatted and file system reset.\n");
 }
 
 // Initializes the file system (calls format_disk)
 void create_file_system() {
     format_disk();
-    print_to_screen("DEBUG: File system created.");
+    print_to_screen("DEBUG: File system created.\n");
 }
 
 // Finds a free inode
@@ -58,30 +59,44 @@ int allocate_inode() {
     return -1; // No free inodes available
 }
 
-// Finds a free block in the disk storage
 int allocate_block() {
     for (int i = 0; i < BLOCK_COUNT; i++) {
-        if (block_bitmap[i] == 0) {
-            block_bitmap[i] = 1;
-            sb.free_blocks--;
-            return i;
+        if (block_bitmap[i] == 0) { // Find a free block
+            block_bitmap[i] = 1; // Mark as allocated
+            sb.free_blocks--; // Update superblock
+            return i; // Return the allocated block index
         }
     }
     return -1; // No free blocks available
 }
 
+// Finds a free block in the disk storage
+int allocate_blocks(int inode_index, size_t required_blocks) {
+    int allocated = 0;
+    for (int i = 0; i < MAX_BLOCKS_PER_FILE && allocated < required_blocks; i++) {
+        if (inode_table[inode_index].blocks[i] == -1) {
+            int new_block = allocate_block();
+            if (new_block == -1) break;
+            inode_table[inode_index].blocks[i] = new_block;
+            allocated++;
+        }
+    }
+    return allocated;
+}
+
+
 // Creates a new file and assigns an inode
 int create_file(const char* filename) {
     int inode_index = allocate_inode();
     if (inode_index == -1) {
-        print_to_screen("ERROR: No free inodes available.");
+        print_to_screen("ERROR: No free inodes available.\n");
         return -1;
     }
 
     int block_index = allocate_block();
     if (block_index == -1) {
         inode_table[inode_index].inode_number = 0; // Free the inode
-        print_to_screen("ERROR: No free disk space.");
+        print_to_screen("ERROR: No free disk space.\n");
         return -1;
     }
 
@@ -94,12 +109,12 @@ int create_file(const char* filename) {
         if (root_directory[i].inode_number == 0) { // Empty slot
             strncpy(root_directory[i].filename, filename, MAX_FILENAME_LEN);
             root_directory[i].inode_number = inode_index + 1;
-            print_to_screen("DEBUG: File created.");
+            print_to_screen("DEBUG: File created.\n");
             return inode_index;
         }
     }
 
-    print_to_screen("ERROR: Root directory full.");
+    print_to_screen("ERROR: Root directory full.\n");
     return -1;
 }
 
@@ -107,34 +122,34 @@ int create_file(const char* filename) {
 int read_file(int inode_number, char* buffer, size_t size) {
     int inode_index = inode_number - 1;
     if (inode_index < 0 || inode_index >= MAX_FILES || inode_table[inode_index].inode_number == 0) {
-        print_to_screen("ERROR: Invalid inode number.");
+        print_to_screen("ERROR: Invalid inode number.\n");
         return -1;
     }
 
     int block_index = inode_table[inode_index].blocks[0]; // First direct block
     if (block_index == -1) {
-        print_to_screen("ERROR: File has no allocated blocks.");
+        print_to_screen("ERROR: File has no allocated blocks.\n");
         return -1;
     }
 
     size_t read_size = (size > inode_table[inode_index].size) ? inode_table[inode_index].size : size;
     memcpy(buffer, storage[block_index], read_size);
 
-    print_to_screen("DEBUG: File read.");
+    print_to_screen("DEBUG: File read.\n");
     return read_size;
 }
 
-// Writes data to a file
+// Overwrites data to a file
 int write_file(int inode_number, const char* buffer, size_t size) {
     int inode_index = inode_number - 1;
     if (inode_index < 0 || inode_index >= MAX_FILES || inode_table[inode_index].inode_number == 0) {
-        print_to_screen("ERROR: Invalid inode number.");
+        print_to_screen("ERROR: Invalid inode number.\n");
         return -1;
     }
 
     int block_index = inode_table[inode_index].blocks[0]; // First direct block
     if (block_index == -1) {
-        print_to_screen("ERROR: File has no allocated blocks.");
+        print_to_screen("ERROR: File has no allocated blocks.\n");
         return -1;
     }
 
@@ -142,9 +157,32 @@ int write_file(int inode_number, const char* buffer, size_t size) {
     memcpy(storage[block_index], buffer, write_size);
     inode_table[inode_index].size = write_size;
 
-    print_to_screen("DEBUG: File written.");
+    print_to_screen("DEBUG: File written.\n");
     return write_size;
 }
+
+// Appends to the file
+int append_to_file(int inode_number, const char* buffer, size_t size) {
+    int inode_index = inode_number - 1;
+    if (inode_index < 0 || inode_index >= MAX_FILES || inode_table[inode_index].inode_number == 0) {
+        print_to_screen("ERROR: Invalid inode number.\n");
+        return -1;
+    }
+
+    size_t current_size = inode_table[inode_index].size;
+    if (current_size + size > BLOCK_SIZE) {
+        print_to_screen("ERROR: File size exceeds block limit.\n");
+        return -1;
+    }
+
+    int block_index = inode_table[inode_index].blocks[0];
+    memcpy(storage[block_index] + current_size, buffer, size);
+    inode_table[inode_index].size += size;
+
+    print_to_screen("DEBUG: Data appended to file.\n");
+    return size;
+}
+
 
 // Deletes a file
 int delete_file(const char* filename) {
@@ -153,20 +191,42 @@ int delete_file(const char* filename) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
-            int block_index = inode_table[inode_index].blocks[0];
 
-            if (block_index != -1) {
-                block_bitmap[block_index] = 0; // Free the block
-                sb.free_blocks++;
+            // Free all blocks allocated to the file
+            for (int j = 0; j < MAX_BLOCKS_PER_FILE; j++) {
+                int block_index = inode_table[inode_index].blocks[j];
+                if (block_index != -1) {
+                    block_bitmap[block_index] = 0; // Mark block as free
+                    sb.free_blocks++;
+                    inode_table[inode_index].blocks[j] = -1; // Reset block entry
+                }
             }
 
+            // Reset inode entry
             inode_table[inode_index].inode_number = 0;
-            root_directory[i].inode_number = 0; // Remove from directory
+            inode_table[inode_index].size = 0;
+            inode_table[inode_index].indirect_block = -1;
 
-            print_to_screen("DEBUG: File deleted.");
+            // Clear directory entry
+            root_directory[i].inode_number = 0;
+            memset(root_directory[i].filename, 0, MAX_FILENAME_LEN);
+
+            print_to_screen("DEBUG: File deleted successfully.\n");
             return 0;
         }
     }
-    print_to_screen("ERROR: File not found.");
+    print_to_screen("ERROR: File not found.\n");
     return -1;
 }
+
+
+/**/
+void list_files() {
+    debug_print("DEBUG: Listing files...");
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (root_directory[i].inode_number != 0) {
+            debug_print(root_directory[i].filename);
+        }
+    }
+}
+

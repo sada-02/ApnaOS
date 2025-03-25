@@ -20,6 +20,7 @@ __attribute__((used)) static const struct {
 #include "idt.h"
 #include "pic.h"
 #include "interrupts.h"
+#include "filesystem.h"
 #include "string.h"
 
 extern void dummy_process_1(void);
@@ -180,6 +181,53 @@ void cli_loop()
     }
 }
 
+
+void test_filesystem() {
+    print_to_screen("Testing filesystem...\n");
+
+    // Create a file
+    const char *filename = "testfile.txt";
+    read_line(filename, MAX_INPUT_LENGTH);
+    int inode = create_file(filename);
+    if (inode == -1) {
+        print_to_screen("Failed to create file.\n");
+        return;
+    }
+    print_to_screen("File created successfully.\n");
+    
+    // Write to the file
+    const char *data = "Hello, ApnaOS!";
+    read_line(data, MAX_INPUT_LENGTH);
+    int bytes_written = write_file(inode + 1, data, strlen(data));
+    if (bytes_written == -1) {
+        print_to_screen("Failed to write to file.\n");
+        return;
+    }
+    print_to_screen("Data written to file successfully.\n");
+
+    // Read from the file
+    char buffer[128];
+    int bytes_read = read_file(inode + 1, buffer, sizeof(buffer));
+    if (bytes_read == -1) {
+        print_to_screen("Failed to read from file.\n");
+        return;
+    }
+
+    buffer[bytes_read] = '\0'; // Null-terminate the string
+    print_to_screen("Data read from file: ");
+    print_to_screen(buffer);
+    print_to_screen("\n");
+
+    // Delete the file
+    if (delete_file(filename) == -1) {
+        print_to_screen("Failed to delete file.\n");
+        return;
+    }
+    print_to_screen("File deleted successfully.\n");
+
+    print_to_screen("Filesystem test completed.\n");
+}
+
 void kernel_main(uint32_t multiboot_info)
 {
     serial_init();
@@ -193,6 +241,9 @@ void kernel_main(uint32_t multiboot_info)
     }
     memory_init(multiboot_info);
     debug_print("DEBUG: Memory initialized.");
+
+    create_file_system();
+    debug_print("DEBUG: Filesystem initialized.");
     
     gdt_install();
     print_to_screen("DEBUG: GDT installed.\n");
@@ -207,9 +258,12 @@ void kernel_main(uint32_t multiboot_info)
 
     init_process_management();
     debug_print("DEBUG: Process management initialized.");
-    cli_loop();
+
+    test_filesystem();
+
+    // cli_loop();
     
-    asm volatile("cli");
+    // asm volatile("cli");
     print_to_screen("Kernel execution terminated.\n");
     while(1){ asm volatile("hlt"); }
 }
