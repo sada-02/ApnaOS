@@ -1,5 +1,5 @@
 #include "process.h"
-#include "basicmemory.h"
+#include "memory.h"
 #include "syscall.h"
 
 PCB* current_process = NULL;
