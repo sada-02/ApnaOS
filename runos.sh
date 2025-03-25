@@ -17,6 +17,8 @@ gcc -m32 -ffreestanding -c serial.c -o serial.o
 gcc -m32 -ffreestanding -c process.c -o process.o
 gcc -m32 -ffreestanding -c process_test.c -o process_test.o
 gcc -m32 -ffreestanding -c keyboard.c -o keyboard.o
+gcc -m32 -ffreestanding -c syscall.c -o syscall.o
+gcc -m32 -ffreestanding -c syscall_test.c -o syscall_test.o
 gcc -m32 -ffreestanding -c io.c -o io.o
 gcc -m32 -ffreestanding -c idt.c -o idt.o
 gcc -m32 -ffreestanding -c pic.c -o pic.o
@@ -30,7 +32,7 @@ echo "Linking kernel binary..."
 ld -m elf_i386 -T linker.ld -o kernel.bin \
     boot.o kernel.o process.o process_test.o serial.o keyboard.o memory.o \
     io.o idt.o idt_asm.o irq_asm.o pic.o interrupts.o gdt.o gdt_c.o exceptions.o \
-    string.o dummy1.o dummy2.o dummy3.o filesystem.o
+    string.o dummy1.o dummy2.o dummy3.o filesystem.o syscall.o syscall_test.o
 
 echo "Setting up GRUB boot structure..."
 mkdir -p iso/boot/grub
