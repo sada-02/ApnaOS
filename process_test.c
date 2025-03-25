@@ -1,5 +1,5 @@
 #include "process.h"
-#include "basicmemory.h"
+#include "memory.h"
 #include "syscall.h"
 
 void test_process_1(void);

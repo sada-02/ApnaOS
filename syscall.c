@@ -1,6 +1,6 @@
 #include "syscall.h"
 #include "process.h"
-#include "basicmemory.h"
+#include "memory.h"
 
 PCB* get_current_process(void) {
     return current_process;

@@ -261,8 +261,9 @@ void kernel_main(uint32_t multiboot_info)
     debug_print("DEBUG: System calls initialized.");
     syscall_test();
     
-    init_process_management();
-    debug_print("DEBUG: Process management initialized.");
+    // init_process_management();
+    // debug_print("DEBUG: Process management initialized.");
+    // process_test();
 
     test_filesystem();
 

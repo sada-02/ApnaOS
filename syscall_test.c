@@ -1,6 +1,6 @@
 #include "process.h"
 #include "syscall.h"
-#include "basicmemory.h"
+#include "memory.h"
 
 void test_simple_fork(void) {
     debug_print("DEBUG: Testing simple fork");
