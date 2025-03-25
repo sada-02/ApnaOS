@@ -256,6 +256,11 @@ void kernel_main(uint32_t multiboot_info)
     print_to_screen("DEBUG: Keyboard initialized. Press keys!\n");
     asm volatile("sti");
 
+    // Initialize system calls
+    init_syscalls();
+    debug_print("DEBUG: System calls initialized.");
+    syscall_test();
+    
     init_process_management();
     debug_print("DEBUG: Process management initialized.");
 
