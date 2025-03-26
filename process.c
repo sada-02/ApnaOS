@@ -67,6 +67,7 @@ void schedule() {
     PCB* next_process = dequeue_process(&ready_queue);
     if (next_process == NULL) {
         debug_print("DEBUG: No more processes in ready queue");
+        cli_loop();
         while(1);
     }
     

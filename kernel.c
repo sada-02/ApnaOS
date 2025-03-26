@@ -12,6 +12,7 @@ __attribute__((used)) static const struct {
     -(0x1BADB002 + 0x00010003)
 };
 
+
 #include "gdt.h"
 #include "process.h"
 #include "memory.h"
@@ -22,6 +23,7 @@ __attribute__((used)) static const struct {
 #include "interrupts.h"
 #include "filesystem.h"
 #include "string.h"
+#include "syscall.h"    
 
 extern void dummy_process_1(void);
 extern void dummy_process_2(void);
@@ -161,26 +163,76 @@ void read_line(char *buffer, int max_length)
     input_ready = 0;
 }
 
-void cli_loop()
-{
+void cli_loop(void) {
     char input[MAX_INPUT_LENGTH];
-    while(1){
+
+    while (1) {
         print_to_screen("CLI> ");
         read_line(input, MAX_INPUT_LENGTH);
-        if(strcmp(input, "exit") == 0){ print_to_screen("Exiting CLI...\n"); break; }
-        int found = 0;
-        for (int i = 0; i < num_process_commands; i++){
-            if(strcmp(input, process_commands[i].name) == 0){
-                print_to_screen("Process found. Executing process...\n");
-                process_commands[i].func();
-                found = 1;
-                break;
+
+        // Tokenize the input line using our minimal strtok.
+        char *token1 = strtok(input, " \t");
+        if (!token1) {
+            continue;
+        }
+
+        // "exit" command exits the CLI.
+        if (strcmp(token1, "exit") == 0) {
+            print_to_screen("Exiting kernel CLI...\n");
+            break;
+        }
+        // "process" command handles process-related tasks.
+        else if (strcmp(token1, "process") == 0) {
+            char *token2 = strtok(NULL, " \t");
+            if (!token2) {
+                print_to_screen("Usage: process <dummy1|dummy2|...|start>\n");
+                continue;
+            }
+            
+            // "process start" starts executing queued processes.
+            if (strcmp(token2, "start") == 0) {
+                print_to_screen("Starting scheduled processes...\n");
+                schedule();
+                /*
+                 * Note: Depending on your scheduler implementation,
+                 * schedule() may not return unless the running processes exit or yield.
+                 */
+                continue;
+            }
+            
+            // Otherwise, treat token2 as a process name to queue.
+            int found = 0;
+            for (int i = 0; i < num_process_commands; i++) {
+                if (strcmp(token2, process_commands[i].name) == 0) {
+                    print_to_screen("Queueing process...\n");
+                    
+                    // Allocate a 4 KB stack for the new process.
+                    uint32_t *stack_top = (uint32_t *) kmalloc(4096);
+                    if (!stack_top) {
+                        print_to_screen("Error: Unable to allocate process stack.\n");
+                        found = 1;
+                        break;
+                    }
+                    
+                    // Create and enqueue the process.
+                    create_process(
+                        get_new_pid(),
+                        (uint32_t *) process_commands[i].func,
+                        stack_top + (4096 / sizeof(uint32_t))
+                    );
+                    found = 1;
+                    break;
+                }
+            }
+            if (!found) {
+                print_to_screen("Error: Unknown process name.\n");
             }
         }
-        if(!found){ print_to_screen("Error: Process not found.\n"); }
+        else {
+            print_to_screen("Unknown command. Use 'process' or 'exit'.\n");
+        }
     }
 }
-
 
 void test_filesystem() {
     print_to_screen("Testing filesystem...\n");
@@ -259,17 +311,17 @@ void kernel_main(uint32_t multiboot_info)
     // Initialize system calls
     init_syscalls();
     debug_print("DEBUG: System calls initialized.");
-    syscall_test();
+    // syscall_test();
     
-    // init_process_management();
-    // debug_print("DEBUG: Process management initialized.");
+    init_process_management();
+    debug_print("DEBUG: Process management initialized.");
     // process_test();
 
-    test_filesystem();
+    // test_filesystem();
 
-    // cli_loop();
+    cli_loop();
     
-    // asm volatile("cli");
+    asm volatile("cli");
     print_to_screen("Kernel execution terminated.\n");
     while(1){ asm volatile("hlt"); }
 }
