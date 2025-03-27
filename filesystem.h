@@ -38,9 +38,10 @@ void format_disk();
 void create_file_system();
 int allocate_blocks(int inode_index, size_t required_blocks);
 int create_file(const char* filename);
-int read_file(int inode_number, char* buffer, size_t size);
-int write_file(int inode_number, const char* buffer, size_t size);
-int append_to_file(int inode_number, const char* buffer, size_t size);
+int read_file(const char* filename, char* buffer, size_t size);
+int write_file(const char* filename, const char* buffer, size_t size);
+int append_to_file(const char* filename, const char* buffer, size_t size);
 int delete_file(const char* filename);
 void list_files();
+
 #endif // FILESYSTEM_H

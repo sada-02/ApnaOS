@@ -12,7 +12,6 @@ __attribute__((used)) static const struct {
     -(0x1BADB002 + 0x00010003)
 };
 
-
 #include "gdt.h"
 #include "process.h"
 #include "memory.h"
@@ -228,8 +227,79 @@ void cli_loop(void) {
                 print_to_screen("Error: Unknown process name.\n");
             }
         }
+        // Filesystem commands
+        else if (strcmp(token1, "mkfile") == 0) {
+            char *token2 = strtok(NULL, " \t");
+            if (!token2) {
+                print_to_screen("Usage: mkfile <filename>\n");
+                continue;
+            }
+            if (create_file(token2) == -1) {
+                print_to_screen("Error: Failed to create file.\n");
+            } else {
+                print_to_screen("File created successfully.\n");
+            }
+        }
+        else if (strcmp(token1, "readfile") == 0) {
+            char *token2 = strtok(NULL, " \t");
+            if (!token2) {
+                print_to_screen("Usage: readfile <filename>\n");
+                continue;
+            }
+            char buffer[128];
+            int bytes_read = read_file(token2, buffer, sizeof(buffer));
+            if (bytes_read == -1) {
+                print_to_screen("Error: Failed to read file.\n");
+            } else {
+                buffer[bytes_read] = '\0'; // Null-terminate the string
+                print_to_screen("File content: ");
+                print_to_screen(buffer);
+                print_to_screen("\n");
+            }
+        }
+        else if (strcmp(token1, "writefile") == 0) {
+            char *token2 = strtok(NULL, " \t");
+            char *token3 = strtok(NULL, "\n"); // Remaining input as data
+            if (!token2 || !token3) {
+                print_to_screen("Usage: writefile <filename> <data>\n");
+                continue;
+            }
+            if (write_file(token2, token3, strlen(token3)) == -1) {
+                print_to_screen("Error: Failed to write to file.\n");
+            } else {
+                print_to_screen("Data written to file successfully.\n");
+            }
+        }
+        else if (strcmp(token1, "appendfile") == 0) {
+            char *token2 = strtok(NULL, " \t");
+            char *token3 = strtok(NULL, "\n"); // Remaining input as data
+            if (!token2 || !token3) {
+                print_to_screen("Usage: appendfile <filename> <data>\n");
+                continue;
+            }
+            if (append_to_file(token2, token3, strlen(token3)) == -1) {
+                print_to_screen("Error: Failed to append to file.\n");
+            } else {
+                print_to_screen("Data appended to file successfully.\n");
+            }
+        }
+        else if (strcmp(token1, "rmfile") == 0) {
+            char *token2 = strtok(NULL, " \t");
+            if (!token2) {
+                print_to_screen("Usage: rmfile <filename>\n");
+                continue;
+            }
+            if (delete_file(token2) == -1) {
+                print_to_screen("Error: Failed to delete file.\n");
+            } else {
+                print_to_screen("File deleted successfully.\n");
+            }
+        }
+        else if (strcmp(token1, "ls") == 0) {
+            list_files();
+        }
         else {
-            print_to_screen("Unknown command. Use 'process' or 'exit'.\n");
+            print_to_screen("Unknown command. Use 'process', 'mkfile', 'readfile', 'writefile', 'appendfile', 'rmfile', 'ls', or 'exit'.\n");
         }
     }
 }

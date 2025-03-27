@@ -14,6 +14,7 @@ DirectoryEntry root_directory[MAX_FILES];
 char storage[BLOCK_COUNT][BLOCK_SIZE]; // Simulated disk storage of size 4 MB
 int block_bitmap[BLOCK_COUNT]; // 1 = used, 0 = free
 
+extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
 
 // Formats the disk and resets the file system
@@ -39,13 +40,13 @@ void format_disk() {
         block_bitmap[i] = 0;
     }
 
-    print_to_screen("DEBUG: Disk formatted and file system reset.\n");
+    debug_print("DEBUG: Disk formatted and file system reset.");
 }
 
 // Initializes the file system (calls format_disk)
 void create_file_system() {
     format_disk();
-    print_to_screen("DEBUG: File system created.\n");
+    debug_print("DEBUG: File system created.");
 }
 
 // Finds a free inode
@@ -89,14 +90,14 @@ int allocate_blocks(int inode_index, size_t required_blocks) {
 int create_file(const char* filename) {
     int inode_index = allocate_inode();
     if (inode_index == -1) {
-        print_to_screen("ERROR: No free inodes available.\n");
+        debug_print("ERROR: No free inodes available.");
         return -1;
     }
 
     int block_index = allocate_block();
     if (block_index == -1) {
         inode_table[inode_index].inode_number = 0; // Free the inode
-        print_to_screen("ERROR: No free disk space.\n");
+        debug_print("ERROR: No free disk space.");
         return -1;
     }
 
@@ -109,82 +110,16 @@ int create_file(const char* filename) {
         if (root_directory[i].inode_number == 0) { // Empty slot
             strncpy(root_directory[i].filename, filename, MAX_FILENAME_LEN);
             root_directory[i].inode_number = inode_index + 1;
-            print_to_screen("DEBUG: File created.\n");
+            debug_print("DEBUG: File created.");
             return inode_index;
         }
     }
 
-    print_to_screen("ERROR: Root directory full.\n");
+    debug_print("ERROR: Root directory full.");
     return -1;
 }
 
-// Reads data from a file
-int read_file(int inode_number, char* buffer, size_t size) {
-    int inode_index = inode_number - 1;
-    if (inode_index < 0 || inode_index >= MAX_FILES || inode_table[inode_index].inode_number == 0) {
-        print_to_screen("ERROR: Invalid inode number.\n");
-        return -1;
-    }
-
-    int block_index = inode_table[inode_index].blocks[0]; // First direct block
-    if (block_index == -1) {
-        print_to_screen("ERROR: File has no allocated blocks.\n");
-        return -1;
-    }
-
-    size_t read_size = (size > inode_table[inode_index].size) ? inode_table[inode_index].size : size;
-    memcpy(buffer, storage[block_index], read_size);
-
-    print_to_screen("DEBUG: File read.\n");
-    return read_size;
-}
-
-// Overwrites data to a file
-int write_file(int inode_number, const char* buffer, size_t size) {
-    int inode_index = inode_number - 1;
-    if (inode_index < 0 || inode_index >= MAX_FILES || inode_table[inode_index].inode_number == 0) {
-        print_to_screen("ERROR: Invalid inode number.\n");
-        return -1;
-    }
-
-    int block_index = inode_table[inode_index].blocks[0]; // First direct block
-    if (block_index == -1) {
-        print_to_screen("ERROR: File has no allocated blocks.\n");
-        return -1;
-    }
-
-    size_t write_size = (size > BLOCK_SIZE) ? BLOCK_SIZE : size;
-    memcpy(storage[block_index], buffer, write_size);
-    inode_table[inode_index].size = write_size;
-
-    print_to_screen("DEBUG: File written.\n");
-    return write_size;
-}
-
-// Appends to the file
-int append_to_file(int inode_number, const char* buffer, size_t size) {
-    int inode_index = inode_number - 1;
-    if (inode_index < 0 || inode_index >= MAX_FILES || inode_table[inode_index].inode_number == 0) {
-        print_to_screen("ERROR: Invalid inode number.\n");
-        return -1;
-    }
-
-    size_t current_size = inode_table[inode_index].size;
-    if (current_size + size > BLOCK_SIZE) {
-        print_to_screen("ERROR: File size exceeds block limit.\n");
-        return -1;
-    }
-
-    int block_index = inode_table[inode_index].blocks[0];
-    memcpy(storage[block_index] + current_size, buffer, size);
-    inode_table[inode_index].size += size;
-
-    print_to_screen("DEBUG: Data appended to file.\n");
-    return size;
-}
-
-
-// Deletes a file
+// Updated delete_file function
 int delete_file(const char* filename) {
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0 &&
@@ -211,21 +146,94 @@ int delete_file(const char* filename) {
             root_directory[i].inode_number = 0;
             memset(root_directory[i].filename, 0, MAX_FILENAME_LEN);
 
-            print_to_screen("DEBUG: File deleted successfully.\n");
+            debug_print("DEBUG: File deleted successfully.");
             return 0;
         }
     }
-    print_to_screen("ERROR: File not found.\n");
+    debug_print("ERROR: File not found.");
     return -1;
 }
 
+// Updated read_file function
+int read_file(const char* filename, char* buffer, size_t size) {
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (root_directory[i].inode_number != 0 &&
+            strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
+            
+            int inode_index = root_directory[i].inode_number - 1;
+            int block_index = inode_table[inode_index].blocks[0]; // First direct block
+            if (block_index == -1) {
+                debug_print("ERROR: File has no allocated blocks.");
+                return -1;
+            }
 
-/**/
+            size_t read_size = (size > inode_table[inode_index].size) ? inode_table[inode_index].size : size;
+            memcpy(buffer, storage[block_index], read_size);
+
+            debug_print("DEBUG: File read.");
+            return read_size;
+        }
+    }
+    debug_print("ERROR: File not found.");
+    return -1;
+}
+
+// Updated write_file function
+int write_file(const char* filename, const char* buffer, size_t size) {
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (root_directory[i].inode_number != 0 &&
+            strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
+            
+            int inode_index = root_directory[i].inode_number - 1;
+            int block_index = inode_table[inode_index].blocks[0]; // First direct block
+            if (block_index == -1) {
+                debug_print("ERROR: File has no allocated blocks.");
+                return -1;
+            }
+
+            size_t write_size = (size > BLOCK_SIZE) ? BLOCK_SIZE : size;
+            memcpy(storage[block_index], buffer, write_size);
+            inode_table[inode_index].size = write_size;
+
+            debug_print("DEBUG: File written.");
+            return write_size;
+        }
+    }
+    debug_print("ERROR: File not found.");
+    return -1;
+}
+
+// Updated append_to_file function
+int append_to_file(const char* filename, const char* buffer, size_t size) {
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (root_directory[i].inode_number != 0 &&
+            strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
+            
+            int inode_index = root_directory[i].inode_number - 1;
+            size_t current_size = inode_table[inode_index].size;
+            if (current_size + size > BLOCK_SIZE) {
+                debug_print("ERROR: File size exceeds block limit.");
+                return -1;
+            }
+
+            int block_index = inode_table[inode_index].blocks[0];
+            memcpy(storage[block_index] + current_size, buffer, size);
+            inode_table[inode_index].size += size;
+
+            debug_print("DEBUG: Data appended to file.");
+            return size;
+        }
+    }
+    debug_print("ERROR: File not found.");
+    return -1;
+}
+
 void list_files() {
-    debug_print("DEBUG: Listing files...");
+    debug_print("DEBUG: Listing files.");
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0) {
-            debug_print(root_directory[i].filename);
+            print_to_screen(root_directory[i].filename);
+            print_to_screen("\n");
         }
     }
 }
