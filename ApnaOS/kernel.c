@@ -12,17 +12,22 @@ __attribute__((used)) static const struct {
     -(0x1BADB002 + 0x00010003)
 };
 
-#include "gdt.h"
-#include "process.h"
-#include "memory.h"
+#include "keyboard/gdt.h"
+#include "keyboard/keyboard.h"
+#include "keyboard/string.h"
+
+#include "process/process.h"
+#include "process/syscall.h"   
+
+#include "memory/memory.h"
+
+#include "interrupts/idt.h"
+#include "interrupts/pic.h"
+#include "interrupts/interrupts.h"
+
+#include "filesystem/filesystem.h" 
+
 #include "serial.h"
-#include "keyboard.h"
-#include "idt.h"
-#include "pic.h"
-#include "interrupts.h"
-#include "filesystem.h"
-#include "string.h"
-#include "syscall.h"    
 
 extern void dummy_process_1(void);
 extern void dummy_process_2(void);
