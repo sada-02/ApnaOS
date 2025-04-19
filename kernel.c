@@ -12,21 +12,48 @@ __attribute__((used)) static const struct {
     -(0x1BADB002 + 0x00010003)
 };
 
-#include "gdt.h"
-#include "process.h"
-#include "memory.h"
+#include "keyboard/gdt.h"
+#include "keyboard/keyboard.h"
+#include "keyboard/string.h"
+
+#include "process/process.h"
+#include "process/syscall.h"   
+
+#include "memory/memory.h"
+
+#include "interrupts/idt.h"
+#include "interrupts/pic.h"
+#include "interrupts/interrupts.h"
+
+#include "filesystem/filesystem.h" 
+
 #include "serial.h"
-#include "keyboard.h"
-#include "idt.h"
-#include "pic.h"
-#include "interrupts.h"
-#include "filesystem.h"
-#include "string.h"
-#include "syscall.h"    
 
 extern void dummy_process_1(void);
 extern void dummy_process_2(void);
 extern void dummy_process_3(void);
+
+/* 
+ * Minimal implementation of atoi.
+ * Converts a string to an integer (supports optional leading '-' for negative numbers).
+ */
+int atoi(const char *s) {
+    int num = 0;
+    int sign = 1;
+    if (*s == '-') {
+        sign = -1;
+        s++;
+    }
+    while (*s) {
+        if (*s >= '0' && *s <= '9') {
+            num = num * 10 + (*s - '0');
+        } else {
+            break;
+        }
+        s++;
+    }
+    return sign * num;
+}
 
 void itoa(int n, char *str)
 {
@@ -182,24 +209,26 @@ void cli_loop(void) {
         }
         // "process" command handles process-related tasks.
         else if (strcmp(token1, "process") == 0) {
-            char *token2 = strtok(NULL, " \t");
+            char *token2 = strtok(NULL, " \t"); // process name or "start"
             if (!token2) {
-                print_to_screen("Usage: process <dummy1|dummy2|...|start>\n");
+                print_to_screen("Usage: process <dummy1|dummy2|dummy3|start> [priority]\n");
                 continue;
             }
             
-            // "process start" starts executing queued processes.
+            // "process start" starts executing scheduled processes.
             if (strcmp(token2, "start") == 0) {
                 print_to_screen("Starting scheduled processes...\n");
                 schedule();
-                /*
-                 * Note: Depending on your scheduler implementation,
-                 * schedule() may not return unless the running processes exit or yield.
-                 */
                 continue;
             }
             
             // Otherwise, treat token2 as a process name to queue.
+            int priority = 1;  // default priority
+            char *token3 = strtok(NULL, " \t");  // optional priority value
+            if (token3) {
+                priority = atoi(token3);
+            }
+            
             int found = 0;
             for (int i = 0; i < num_process_commands; i++) {
                 if (strcmp(token2, process_commands[i].name) == 0) {
@@ -213,11 +242,12 @@ void cli_loop(void) {
                         break;
                     }
                     
-                    // Create and enqueue the process.
+                    // Create and enqueue the process with the specified priority.
                     create_process(
                         get_new_pid(),
                         (uint32_t *) process_commands[i].func,
-                        stack_top + (4096 / sizeof(uint32_t))
+                        stack_top + (4096 / sizeof(uint32_t)),
+                        priority
                     );
                     found = 1;
                     break;
@@ -309,7 +339,7 @@ void test_filesystem() {
 
     // Create a file
     const char *filename = "testfile.txt";
-    read_line(filename, MAX_INPUT_LENGTH);
+    read_line((char *)filename, MAX_INPUT_LENGTH);
     int inode = create_file(filename);
     if (inode == -1) {
         print_to_screen("Failed to create file.\n");
@@ -319,7 +349,7 @@ void test_filesystem() {
     
     // Write to the file
     const char *data = "Hello, ApnaOS!";
-    read_line(data, MAX_INPUT_LENGTH);
+    read_line((char *)data, MAX_INPUT_LENGTH);
     int bytes_written = write_file(inode + 1, data, strlen(data));
     if (bytes_written == -1) {
         print_to_screen("Failed to write to file.\n");
@@ -381,13 +411,10 @@ void kernel_main(uint32_t multiboot_info)
     // Initialize system calls
     init_syscalls();
     debug_print("DEBUG: System calls initialized.");
-    // syscall_test();
     
+    // Initialize process management (with priority-based scheduling)
     init_process_management();
     debug_print("DEBUG: Process management initialized.");
-    // process_test();
-
-    // test_filesystem();
 
     cli_loop();
     

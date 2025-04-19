@@ -2,37 +2,42 @@
 set -e
 
 echo "Assembling bootloader..."
-nasm -f elf32 boot.asm -o boot.o
-nasm -f elf32 idt.asm -o idt_asm.o
-nasm -f elf32 exceptions.asm -o exceptions.o
-nasm -f elf32 irq.asm -o irq_asm.o
-nasm -f elf32 gdt.asm -o gdt.o
+nasm -f elf32 boot.asm -o bin/boot.o
+nasm -f elf32 interrupts/idt.asm -o bin/idt_asm.o
+nasm -f elf32 interrupts/exceptions.asm -o bin/exceptions.o
+nasm -f elf32 interrupts/irq.asm -o bin/irq_asm.o
+nasm -f elf32 keyboard/gdt.asm -o bin/gdt.o
 
 echo "Compiling C files..."
-gcc -m32 -ffreestanding -c kernel.c -o kernel.o
-gcc -m32 -ffreestanding -c gdt.c -o gdt_c.o
-gcc -m32 -ffreestanding -c memory.c -o memory.o
-gcc -m32 -ffreestanding -c filesystem.c -o filesystem.o
-gcc -m32 -ffreestanding -c serial.c -o serial.o
-gcc -m32 -ffreestanding -c process.c -o process.o
-gcc -m32 -ffreestanding -c process_test.c -o process_test.o
-gcc -m32 -ffreestanding -c keyboard.c -o keyboard.o
-gcc -m32 -ffreestanding -c syscall.c -o syscall.o
-gcc -m32 -ffreestanding -c syscall_test.c -o syscall_test.o
-gcc -m32 -ffreestanding -c io.c -o io.o
-gcc -m32 -ffreestanding -c idt.c -o idt.o
-gcc -m32 -ffreestanding -c pic.c -o pic.o
-gcc -m32 -ffreestanding -c interrupts.c -o interrupts.o
-gcc -m32 -ffreestanding -c string.c -o string.o
-gcc -m32 -ffreestanding -c test_processes/dummy1.c -o dummy1.o
-gcc -m32 -ffreestanding -c test_processes/dummy2.c -o dummy2.o
-gcc -m32 -ffreestanding -c test_processes/dummy3.c -o dummy3.o
+gcc -m32 -ffreestanding -c kernel.c -o bin/kernel.o
+gcc -m32 -ffreestanding -c serial.c -o bin/serial.o
+
+gcc -m32 -ffreestanding -c memory/memory.c -o bin/memory.o
+gcc -m32 -ffreestanding -c filesystem/filesystem.c -o bin/filesystem.o
+
+gcc -m32 -ffreestanding -c process/process.c -o bin/process.o
+gcc -m32 -ffreestanding -c process/syscall.c -o bin/syscall.o
+
+gcc -m32 -ffreestanding -c keyboard/keyboard.c -o bin/keyboard.o
+gcc -m32 -ffreestanding -c keyboard/io.c -o bin/io.o
+gcc -m32 -ffreestanding -c keyboard/string.c -o bin/string.o
+gcc -m32 -ffreestanding -c keyboard/gdt.c -o bin/gdt_c.o
+
+gcc -m32 -ffreestanding -c interrupts/idt.c -o bin/idt.o
+gcc -m32 -ffreestanding -c interrupts/pic.c -o bin/pic.o
+gcc -m32 -ffreestanding -c interrupts/interrupts.c -o bin/interrupts.o
+
+gcc -m32 -ffreestanding -c test_processes/dummy1.c -o bin/dummy1.o
+gcc -m32 -ffreestanding -c test_processes/dummy2.c -o bin/dummy2.o
+gcc -m32 -ffreestanding -c test_processes/dummy3.c -o bin/dummy3.o
+gcc -m32 -ffreestanding -c test_processes/process_test.c -o bin/process_test.o
+gcc -m32 -ffreestanding -c test_processes/syscall_test.c -o bin/syscall_test.o
 
 echo "Linking kernel binary..."
 ld -m elf_i386 -T linker.ld -o kernel.bin \
-    boot.o kernel.o process.o process_test.o serial.o keyboard.o memory.o \
-    io.o idt.o idt_asm.o irq_asm.o pic.o interrupts.o gdt.o gdt_c.o exceptions.o \
-    string.o dummy1.o dummy2.o dummy3.o filesystem.o syscall.o syscall_test.o
+    bin/boot.o bin/kernel.o bin/process.o bin/process_test.o bin/serial.o bin/keyboard.o bin/memory.o \
+    bin/io.o bin/idt.o bin/idt_asm.o bin/irq_asm.o bin/pic.o bin/interrupts.o bin/gdt.o bin/gdt_c.o bin/exceptions.o \
+    bin/string.o bin/dummy1.o bin/dummy2.o bin/dummy3.o bin/filesystem.o bin/syscall.o bin/syscall_test.o
 
 echo "Setting up GRUB boot structure..."
 mkdir -p iso/boot/grub
