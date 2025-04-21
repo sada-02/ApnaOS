@@ -14,7 +14,6 @@ KERNEL = kernel.bin
 ISO_DIR = iso/boot
 ISO = os.iso
 
-# Default target: build everything
 all: $(ISO)
 
 # Assemble bootloader
@@ -68,14 +67,10 @@ iso/boot/grub/grub.cfg:
 	echo '  multiboot /boot/kernel.bin' >> iso/boot/grub/grub.cfg
 	echo '}' >> iso/boot/grub/grub.cfg
 
-# Build ISO
 $(ISO): prepare-iso iso/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) iso/ --modules="multiboot"
 
-# Run in QEMU
 run: $(ISO)
 	qemu-system-i386 -cdrom $(ISO)
-
-# Clean build files
 clean:
 	rm -rf $(OBJ) $(KERNEL) $(ISO) iso/

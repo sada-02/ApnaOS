@@ -24,20 +24,13 @@ void initialize_queue(ProcessQueue* queue) {
 bool is_queue_empty(ProcessQueue* queue) {
     return queue->front == NULL;
 }
-
-/* New function: Enqueue process sorted by priority (lower number = higher priority)
-   For processes with the same priority, insertion order (FCFS) is preserved. */
 void enqueue_process(ProcessQueue* queue, PCB* process) {
     process->next = NULL;
-
-    // If the queue is empty, simply insert.
     if (is_queue_empty(queue)) {
         queue->front = process;
         queue->rear = process;
         return;
     }
-
-    // If the new process has higher priority than the front process, insert at the beginning.
     if (process->priority < queue->front->priority) {
         process->next = queue->front;
         queue->front = process;
@@ -45,8 +38,6 @@ void enqueue_process(ProcessQueue* queue, PCB* process) {
     }
 
     PCB* current = queue->front;
-    // Traverse until you find a process with greater priority value.
-    // For same priority, preserve the order (i.e. insert after).
     while (current->next && current->next->priority <= process->priority) {
         current = current->next;
     }
@@ -79,14 +70,10 @@ void allocate_kernel_stack(PCB* process) {
     process->kernel_stack_base = (uint32_t*)kmalloc(KERNEL_STACK_SIZE);
     process->kernel_stack_ptr = process->kernel_stack_base + (KERNEL_STACK_SIZE/sizeof(uint32_t));
 }
-
-/* Modified schedule: Assumes that processes in the ready_queue are sorted by priority */
 void schedule() {
-    // Save current process state if it's running.
     if (current_process != NULL) {
         if (current_process->state == STATE_RUNNING) {
             current_process->state = STATE_READY;
-            // Reinsert using our priority-queue function.
             enqueue_process(&ready_queue, current_process);
         }
     }
@@ -101,18 +88,16 @@ void schedule() {
     next_process->state = STATE_RUNNING;
     
     debug_print("DEBUG: Switching to process:");
-    debug_int(next_process->pid);
-    
-    // If this is a newly forked process, adjust registers so fork returns 0.
+    debug_int(next_process->pid);\
     if (next_process->is_new_child) {
         next_process->is_new_child = false;
         
         current_process = next_process;
         __asm__ volatile (
-            "xorl %%eax, %%eax\n\t"  // Child sees fork returning 0
-            "movl %0, %%esp\n\t"     // Load process user stack pointer
-            "popl %%ebp\n\t"         // Restore base pointer
-            "ret\n\t"               // Jump to saved instruction pointer
+            "xorl %%eax, %%eax\n\t"  
+            "movl %0, %%esp\n\t"     
+            "popl %%ebp\n\t"        
+            "ret\n\t"              
             : : "r" (next_process->user_stack_ptr) : "eax"
         );
     }
@@ -127,16 +112,14 @@ void schedule() {
     current_process = next_process;
     
     __asm__ volatile (
-        "movl %0, %%esp\n\t"     // Load next process user stack pointer
-        "popl %%ebp\n\t"         // Restore next process base pointer
-        "ret\n\t"                // Return to the saved instruction pointer
+        "movl %0, %%esp\n\t"     
+        "popl %%ebp\n\t"         
+        "ret\n\t"                
         : : "r" (next_process->user_stack_ptr)
     );
 }
 
-/* Modified create_process to accept a priority parameter.
-   The process's user stack is set up, the kernel stack allocated,
-   and the process is enqueued in the ready queue sorted by priority. */
+
 PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, int priority) {
     PCB* new_process = (PCB*) kmalloc(sizeof(PCB));
     if (new_process == NULL) {
@@ -145,15 +128,9 @@ PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, in
 
     new_process->pid = pid;
     new_process->state = STATE_NEW;
-    new_process->priority = priority;  // Set process priority
-
-    // Allocate user stack (for example, 1024 words below the stack_top)
+    new_process->priority = priority;  
     new_process->user_stack_base = stack_top - 1024;
-
-    // Prepare user stack:
-    // Push the entry point as the return address.
     *(--stack_top) = (uint32_t)entry_point;
-    // Optionally, push a dummy value for EBP.
     *(--stack_top) = 0x0;
     
     new_process->user_stack_ptr = stack_top;
@@ -163,13 +140,10 @@ PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, in
     new_process->next = NULL;
 
     allocate_kernel_stack(new_process);
-    
-    // Add process to global process table.
     new_process->next_in_table = process_table_head;
     process_table_head = new_process;
 
     new_process->state = STATE_READY;
-    // Enqueue using the priority-based method.
     enqueue_process(&ready_queue, new_process);
 
     return new_process;

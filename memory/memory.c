@@ -13,10 +13,7 @@ void kfree(void* ptr) {
         return; // Nothing to free
     }
     
-    // Get the memory block header (located just before the allocated memory)
     memory_block_t* block = (memory_block_t*)((uint8_t*)ptr - sizeof(memory_block_t));
-    
-    // Mark the block as free
     block->is_free = 1;
     
     debug_print("DEBUG: Memory freed");
@@ -31,20 +28,14 @@ void memory_init(uint32_t multiboot_info) {
     kernel_memory_offset = 0;
     
     debug_print("DEBUG: Kernel memory initialized.");
-    
-    // Additional memory initialization would go here
-    // Parse multiboot_info to set up page tables, etc.
 }
 
 void* kmalloc(size_t size) {
-    // Calculate total size needed including the header
     size_t total_size = size + sizeof(memory_block_t);
     
     if (kernel_memory_offset + total_size > KERNEL_MEMORY_SIZE) {
         return NULL; // Out of memory
     }
-    
-    // Get pointer to the memory block header
     memory_block_t* block = (memory_block_t*)&kernel_memory[kernel_memory_offset];
     
     // Initialize the header
@@ -69,8 +60,6 @@ void* allocate_pages(size_t num_pages) {
 }
 
 void copy_page_tables(uint32_t parent_cr3, uint32_t child_cr3) {
-    // In a real implementation, this would copy page tables
-    // For now, just use memcpy as a placeholder
     copy_memory((void*)child_cr3, (void*)parent_cr3, 4096);
 }
 

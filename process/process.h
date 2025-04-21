@@ -50,8 +50,6 @@ PCB* dequeue_process(ProcessQueue* queue);
 void allocate_kernel_stack(PCB* process);
 
 void schedule(void);
-
-/* Updated create_process prototype to include a priority parameter */
 PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_base, int priority);
 uint32_t get_new_pid(void);
 

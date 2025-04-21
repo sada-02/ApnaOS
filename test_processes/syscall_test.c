@@ -1,25 +1,20 @@
 #include "../process/process.h"
 #include "../process/syscall.h"
 #include "../memory/memory.h"
-
 extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
 extern void debug_int(int val);
 extern void serial_print(const char* message);
-
 void test_simple_fork(void) {
     debug_print("DEBUG: Testing simple fork");
-    // int x=4;
-    
     int child_pid = fork_syscall();
     debug_print("DEBUG: Fork returned with PID:");
     debug_int(child_pid);
 
     if (child_pid == 0) {
-        // Child process
         debug_print("DEBUG: Child process running");
         debug_print("DEBUG: Child process exiting");
-        exit_syscall(42); // Exit with status 42
+        exit_syscall(42); 
     } else if (child_pid > 0) {
         int original_child_pid = child_pid;
         int status = 0;
@@ -46,20 +41,14 @@ void test_multiple_forks(void) {
     
     int child_pids[3];
     int fork_count = 0;
-    
-    // Create first child
     child_pids[0] = fork_syscall();
     if (child_pids[0] == 0) {
-        // First child process
         debug_print("DEBUG: First child process running");
         exit_syscall(10);
     } else if (child_pids[0] > 0) {
         fork_count++;
-        
-        // Create second child
         child_pids[1] = fork_syscall();
         if (child_pids[1] == 0) {
-            // Second child process
             debug_print("DEBUG: Second child process running");
             exit_syscall(20);
         } else if (child_pids[1] > 0) {

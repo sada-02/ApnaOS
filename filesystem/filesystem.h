@@ -13,27 +13,25 @@
 
 // Superblock structure
 typedef struct {
-    uint32_t magic;          // Magic number to identify the file system
-    uint32_t total_blocks;   // Total number of blocks
-    uint32_t free_blocks;    // Number of free blocks
-    uint32_t block_size;     // Size of each block
+    uint32_t magic;          
+    uint32_t total_blocks;   
+    uint32_t free_blocks;   
+    uint32_t block_size;   
 } Superblock;
 
-// Inode structure
+
 typedef struct {
-    uint32_t inode_number;   // Unique identifier for file
-    uint32_t size;           // File size in bytes
-    uint32_t blocks[12];     // Direct block pointers (12 direct blocks)
-    uint32_t indirect_block; // Pointer to an indirect block (for larger files)
+    uint32_t inode_number;   
+    uint32_t size;           
+    uint32_t blocks[12];     
+    uint32_t indirect_block; 
 } Inode;
 
-// Directory entry
 typedef struct {
     char filename[MAX_FILENAME_LEN];
-    uint32_t inode_number; // Links to an inode
+    uint32_t inode_number;
 } DirectoryEntry;
 
-// Function prototypes
 void format_disk();
 void create_file_system();
 int allocate_blocks(int inode_index, size_t required_blocks);

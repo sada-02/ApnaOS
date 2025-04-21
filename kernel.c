@@ -33,10 +33,6 @@ extern void dummy_process_1(void);
 extern void dummy_process_2(void);
 extern void dummy_process_3(void);
 
-/* 
- * Minimal implementation of atoi.
- * Converts a string to an integer (supports optional leading '-' for negative numbers).
- */
 int atoi(const char *s) {
     int num = 0;
     int sign = 1;
@@ -195,34 +191,26 @@ void cli_loop(void) {
     while (1) {
         print_to_screen("CLI> ");
         read_line(input, MAX_INPUT_LENGTH);
-
-        // Tokenize the input line using our minimal strtok.
         char *token1 = strtok(input, " \t");
         if (!token1) {
             continue;
         }
-
-        // "exit" command exits the CLI.
         if (strcmp(token1, "exit") == 0) {
             print_to_screen("Exiting kernel CLI...\n");
             break;
         }
-        // "process" command handles process-related tasks.
         else if (strcmp(token1, "process") == 0) {
             char *token2 = strtok(NULL, " \t"); // process name or "start"
             if (!token2) {
                 print_to_screen("Usage: process <dummy1|dummy2|dummy3|start> [priority]\n");
                 continue;
             }
-            
-            // "process start" starts executing scheduled processes.
             if (strcmp(token2, "start") == 0) {
                 print_to_screen("Starting scheduled processes...\n");
                 schedule();
                 continue;
             }
             
-            // Otherwise, treat token2 as a process name to queue.
             int priority = 1;  // default priority
             char *token3 = strtok(NULL, " \t");  // optional priority value
             if (token3) {
@@ -233,16 +221,12 @@ void cli_loop(void) {
             for (int i = 0; i < num_process_commands; i++) {
                 if (strcmp(token2, process_commands[i].name) == 0) {
                     print_to_screen("Queueing process...\n");
-                    
-                    // Allocate a 4 KB stack for the new process.
                     uint32_t *stack_top = (uint32_t *) kmalloc(4096);
                     if (!stack_top) {
                         print_to_screen("Error: Unable to allocate process stack.\n");
                         found = 1;
                         break;
                     }
-                    
-                    // Create and enqueue the process with the specified priority.
                     create_process(
                         get_new_pid(),
                         (uint32_t *) process_commands[i].func,
@@ -257,7 +241,6 @@ void cli_loop(void) {
                 print_to_screen("Error: Unknown process name.\n");
             }
         }
-        // Filesystem commands
         else if (strcmp(token1, "mkfile") == 0) {
             char *token2 = strtok(NULL, " \t");
             if (!token2) {
@@ -337,7 +320,6 @@ void cli_loop(void) {
 void test_filesystem() {
     print_to_screen("Testing filesystem...\n");
 
-    // Create a file
     const char *filename = "testfile.txt";
     read_line((char *)filename, MAX_INPUT_LENGTH);
     int inode = create_file(filename);
@@ -347,7 +329,6 @@ void test_filesystem() {
     }
     print_to_screen("File created successfully.\n");
     
-    // Write to the file
     const char *data = "Hello, ApnaOS!";
     read_line((char *)data, MAX_INPUT_LENGTH);
     int bytes_written = write_file(inode + 1, data, strlen(data));
@@ -356,21 +337,16 @@ void test_filesystem() {
         return;
     }
     print_to_screen("Data written to file successfully.\n");
-
-    // Read from the file
     char buffer[128];
     int bytes_read = read_file(inode + 1, buffer, sizeof(buffer));
     if (bytes_read == -1) {
         print_to_screen("Failed to read from file.\n");
         return;
     }
-
-    buffer[bytes_read] = '\0'; // Null-terminate the string
+    buffer[bytes_read] = '\0'; 
     print_to_screen("Data read from file: ");
     print_to_screen(buffer);
     print_to_screen("\n");
-
-    // Delete the file
     if (delete_file(filename) == -1) {
         print_to_screen("Failed to delete file.\n");
         return;
@@ -407,12 +383,9 @@ void kernel_main(uint32_t multiboot_info)
     
     print_to_screen("DEBUG: Keyboard initialized. Press keys!\n");
     asm volatile("sti");
-
-    // Initialize system calls
     init_syscalls();
     debug_print("DEBUG: System calls initialized.");
     
-    // Initialize process management (with priority-based scheduling)
     init_process_management();
     debug_print("DEBUG: Process management initialized.");
 

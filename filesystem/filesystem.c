@@ -5,26 +5,22 @@
 
 #define BLOCK_COUNT 1024 // No of blocks
 #define BLOCK_SIZE 4096 // 4 KB
-#define MAX_BLOCKS_PER_FILE 2 // 2 blocks or 8 KB size
+#define MAX_BLOCKS_PER_FILE 2 
 
-// Global file system structures
 Superblock sb;
 Inode inode_table[MAX_FILES];
 DirectoryEntry root_directory[MAX_FILES];
-char storage[BLOCK_COUNT][BLOCK_SIZE]; // Simulated disk storage of size 4 MB
-int block_bitmap[BLOCK_COUNT]; // 1 = used, 0 = free
+char storage[BLOCK_COUNT][BLOCK_SIZE]; 
+int block_bitmap[BLOCK_COUNT]; 
 
 extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
 
-// Formats the disk and resets the file system
 void format_disk() {
     sb.magic = 0x12345678;
     sb.total_blocks = BLOCK_COUNT;
     sb.free_blocks = BLOCK_COUNT;
     sb.block_size = BLOCK_SIZE;
-
-    // Reset inodes and block bitmap
     for (int i = 0; i < MAX_FILES; i++) {
         inode_table[i].inode_number = 0;
         inode_table[i].size = 0;
@@ -43,13 +39,11 @@ void format_disk() {
     debug_print("DEBUG: Disk formatted and file system reset.");
 }
 
-// Initializes the file system (calls format_disk)
 void create_file_system() {
     format_disk();
     debug_print("DEBUG: File system created.");
 }
 
-// Finds a free inode
 int allocate_inode() {
     for (int i = 0; i < MAX_FILES; i++) {
         if (inode_table[i].inode_number == 0) {
@@ -57,18 +51,18 @@ int allocate_inode() {
             return i;
         }
     }
-    return -1; // No free inodes available
+    return -1; 
 }
 
 int allocate_block() {
     for (int i = 0; i < BLOCK_COUNT; i++) {
-        if (block_bitmap[i] == 0) { // Find a free block
-            block_bitmap[i] = 1; // Mark as allocated
-            sb.free_blocks--; // Update superblock
-            return i; // Return the allocated block index
+        if (block_bitmap[i] == 0) { 
+            block_bitmap[i] = 1; 
+            sb.free_blocks--; /
+            return i; 
         }
     }
-    return -1; // No free blocks available
+    return -1; 
 }
 
 // Finds a free block in the disk storage
@@ -119,30 +113,23 @@ int create_file(const char* filename) {
     return -1;
 }
 
-// Updated delete_file function
 int delete_file(const char* filename) {
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0 &&
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
-
-            // Free all blocks allocated to the file
             for (int j = 0; j < MAX_BLOCKS_PER_FILE; j++) {
                 int block_index = inode_table[inode_index].blocks[j];
                 if (block_index != -1) {
-                    block_bitmap[block_index] = 0; // Mark block as free
+                    block_bitmap[block_index] = 0; 
                     sb.free_blocks++;
-                    inode_table[inode_index].blocks[j] = -1; // Reset block entry
+                    inode_table[inode_index].blocks[j] = -1; 
                 }
             }
-
-            // Reset inode entry
             inode_table[inode_index].inode_number = 0;
             inode_table[inode_index].size = 0;
             inode_table[inode_index].indirect_block = -1;
-
-            // Clear directory entry
             root_directory[i].inode_number = 0;
             memset(root_directory[i].filename, 0, MAX_FILENAME_LEN);
 
@@ -154,7 +141,6 @@ int delete_file(const char* filename) {
     return -1;
 }
 
-// Updated read_file function
 int read_file(const char* filename, char* buffer, size_t size) {
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0 &&
@@ -178,7 +164,6 @@ int read_file(const char* filename, char* buffer, size_t size) {
     return -1;
 }
 
-// Updated write_file function
 int write_file(const char* filename, const char* buffer, size_t size) {
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0 &&
@@ -203,7 +188,6 @@ int write_file(const char* filename, const char* buffer, size_t size) {
     return -1;
 }
 
-// Updated append_to_file function
 int append_to_file(const char* filename, const char* buffer, size_t size) {
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0 &&
