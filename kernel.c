@@ -231,7 +231,7 @@ void cli_loop(void) {
                     get_new_pid(),
                     (uint32_t *) syscall_test,
                     stack_top + (4096 / sizeof(uint32_t)),
-                    priority
+                    priority, 1, 2
                 );
                 continue;
             }
@@ -250,7 +250,7 @@ void cli_loop(void) {
                     get_new_pid(),
                     (uint32_t *) process_test,
                     stack_top + (4096 / sizeof(uint32_t)),
-                    priority
+                    priority, 1, 2
                 );
                 continue;
             }
@@ -273,7 +273,8 @@ void cli_loop(void) {
                         get_new_pid(),
                         (uint32_t *) process_commands[i].func,
                         stack_top + (4096 / sizeof(uint32_t)),
-                        priority
+                        priority,
+                        1, 2
                     );
                     found = 1;
                     break;

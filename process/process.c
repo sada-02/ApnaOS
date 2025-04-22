@@ -47,7 +47,52 @@ void enqueue_process(ProcessQueue* queue, PCB* process) {
         queue->rear = process;
     }
 }
+void enqueue_process_edf(ProcessQueue* queue, PCB* process) {
+    process->next = NULL;
+    if (is_queue_empty(queue)) {
+        queue->front = process;
+        queue->rear = process;
+        return;
+    }
+    if (process->deadline < queue->front->deadline) {
+        process->next = queue->front;
+        queue->front = process;
+        return;
+    }
 
+    PCB* current = queue->front;
+    while (current->next && current->next->deadline <= process->deadline) {
+        current = current->next;
+    }
+    process->next = current->next;
+    current->next = process;
+    if (process->next == NULL) {
+        queue->rear = process;
+    }
+}
+void enqueue_process_sjf(ProcessQueue* queue, PCB* process) {
+    process->next = NULL;
+    if (is_queue_empty(queue)) {
+        queue->front = process;
+        queue->rear = process;
+        return;
+    }
+    if (process->time_to_run < queue->front->time_to_run) {
+        process->next = queue->front;
+        queue->front = process;
+        return;
+    }
+
+    PCB* current = queue->front;
+    while (current->next && current->next->time_to_run <= process->time_to_run) {
+        current = current->next;
+    }
+    process->next = current->next;
+    current->next = process;
+    if (process->next == NULL) {
+        queue->rear = process;
+    }
+}
 PCB* dequeue_process(ProcessQueue* queue) {
     if (is_queue_empty(queue)) {
         return NULL;
@@ -120,15 +165,16 @@ void schedule() {
 }
 
 
-PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, int priority) {
+PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, int priority, int deadline, int time_to_run) {
     PCB* new_process = (PCB*) kmalloc(sizeof(PCB));
     if (new_process == NULL) {
         return NULL;
     }
-
     new_process->pid = pid;
     new_process->state = STATE_NEW;
     new_process->priority = priority;  
+    new_process->deadline = deadline;
+    new_process->time_to_run = time_to_run;
     new_process->user_stack_base = stack_top - 1024;
     *(--stack_top) = (uint32_t)entry_point;
     *(--stack_top) = 0x0;
@@ -145,7 +191,6 @@ PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, in
 
     new_process->state = STATE_READY;
     enqueue_process(&ready_queue, new_process);
-
     return new_process;
 }
 

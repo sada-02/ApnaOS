@@ -20,7 +20,8 @@ typedef struct PCB {
     uint32_t* program_counter;
     uint32_t cr3;
     int priority;  // Process priority (lower number = higher priority)
-
+    int deadline;  // Deadline for the process
+    int time_to_run;  // Time slice for the process
     struct PCB* next;           // Next in the ready queue
     struct PCB* next_in_table;  // Next in the process table
     struct PCB* parent;
@@ -50,7 +51,7 @@ PCB* dequeue_process(ProcessQueue* queue);
 void allocate_kernel_stack(PCB* process);
 
 void schedule(void);
-PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_base, int priority);
+PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_base, int priority, int dadline, int time_to_run);
 uint32_t get_new_pid(void);
 
 void init_process_management(void);
