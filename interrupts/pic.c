@@ -3,14 +3,14 @@
 
 void pic_remap()
 {
-    uint8_t a1 = inb(0x21); // save masks
+    uint8_t a1 = inb(0x21); 
     uint8_t a2 = inb(0xA1);
 
-    outb(0x20, 0x11); // start initialization sequence in cascade mode
+    outb(0x20, 0x11);
     outb(0xA0, 0x11);
 
     outb(0x21, 0x20); 
-    outb(0xA0, 0x28); // Slave PIC vector offset
+    outb(0xA0, 0x28); 
 
     outb(0x21, 0x04);
     outb(0xA0, 0x02); 
