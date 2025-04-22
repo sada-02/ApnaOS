@@ -1,13 +1,11 @@
 #include "syscall.h"
 #include "process.h"
-#include "memory.h"
+#include "../memory/memory.h"
 
 extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
 extern void debug_int(int val);
 extern void kfree(void* ptr);
-extern void copy_memory(uint32_t* dest, uint32_t* src, uint32_t size);
-extern void copy_page_tables(uint32_t* src, uint32_t* dest);
 
 PCB* get_current_process(void) {
     return current_process;

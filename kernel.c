@@ -373,14 +373,14 @@ void test_filesystem() {
     
     const char *data = "Hello, ApnaOS!";
     read_line((char *)data, MAX_INPUT_LENGTH);
-    int bytes_written = write_file(inode + 1, data, strlen(data));
+    int bytes_written = write_file(filename, data, strlen(data));
     if (bytes_written == -1) {
         print_to_screen("Failed to write to file.\n");
         return;
     }
     print_to_screen("Data written to file successfully.\n");
     char buffer[128];
-    int bytes_read = read_file(inode + 1, buffer, sizeof(buffer));
+    int bytes_read = read_file(filename, buffer, sizeof(buffer));
     if (bytes_read == -1) {
         print_to_screen("Failed to read from file.\n");
         return;
