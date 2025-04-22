@@ -26,14 +26,44 @@ static const char scancode_to_ascii[128] = {
     0, ' ', 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+};
+
+static const char scancode_to_ascii_shift[128] = {
+    0, 27, '!', '@', '#', '$', '%', '^',
+    '&', '*', '(', ')', '_', '+', '\b', '\t',
+    'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I',
+    'O', 'P', '{', '}', '\n', 0, 'A', 'S',
+    'D', 'F', 'G', 'H', 'J', 'K', 'L', ':',
+    '"', '~', 0, '|', 'Z', 'X', 'C', 'V',
+    'B', 'N', 'M', '<', '>', '?', 0, '*',
+    0, ' ', 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
+int shift_pressed = 0;
+
 void keyboard_handler() {
     uint8_t scancode = inb(KBD_DATA_PORT);
+
+    if (scancode == 0x2A || scancode == 0x36) {
+        shift_pressed = 1;
+        return;
+    } else if (scancode == 0xAA || scancode == 0xB6) {
+        shift_pressed = 0;
+        return;
+    }
+
     if (!(scancode & KBD_SCANCODE_RELEASE)) {
-        char key = scancode_to_ascii[scancode];
+        char key;
+        if (shift_pressed) {
+            key = scancode_to_ascii_shift[scancode];
+        } else {
+            key = scancode_to_ascii[scancode];
+        }
+
         if (key) {
             if (key == '\n') {
                 input_buffer[buffer_index] = '\0';
