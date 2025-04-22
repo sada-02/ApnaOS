@@ -44,6 +44,7 @@ static const char scancode_to_ascii_shift[128] = {
 };
 
 int shift_pressed = 0;
+int caps_lock_on = 0;
 
 void keyboard_handler() {
     uint8_t scancode = inb(KBD_DATA_PORT);
@@ -56,12 +57,24 @@ void keyboard_handler() {
         return;
     }
 
+    if (scancode == 0x3A) {
+        caps_lock_on = !caps_lock_on;
+        return;
+    }
+
     if (!(scancode & KBD_SCANCODE_RELEASE)) {
-        char key;
+        char key = 0;
+
         if (shift_pressed) {
             key = scancode_to_ascii_shift[scancode];
         } else {
             key = scancode_to_ascii[scancode];
+        }
+
+        if (key >= 'a' && key <= 'z') {
+            if (caps_lock_on ^ shift_pressed) {
+                key = key - 32;
+            }
         }
 
         if (key) {
