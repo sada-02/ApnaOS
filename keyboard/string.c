@@ -43,7 +43,6 @@ char* strncpy(char* dest, const char* src, size_t n) {
     return dest;
 }
 
-// Minimal implementation of strchr, in case it’s not provided.
 char *strchr(const char *s, int c) {
     while (*s) {
         if (*s == (char)c)
@@ -53,7 +52,6 @@ char *strchr(const char *s, int c) {
     return 0;
 }
 
-// Minimal implementation of strtok for use in the kernel.
 char *strtok(char *str, const char *delim) {
     static char *static_str = 0;
     if (str) {
@@ -62,7 +60,6 @@ char *strtok(char *str, const char *delim) {
     if (!static_str) {
         return 0;
     }
-    // Skip leading delimiters.
     while (*static_str && strchr(delim, *static_str)) {
         static_str++;
     }
