@@ -32,6 +32,8 @@ __attribute__((used)) static const struct {
 extern void dummy_process_1(void);
 extern void dummy_process_2(void);
 extern void dummy_process_3(void);
+extern void syscall_test(void);
+extern void process_test(void);
 
 int atoi(const char *s) {
     int num = 0;
@@ -200,9 +202,9 @@ void cli_loop(void) {
             break;
         }
         else if (strcmp(token1, "process") == 0) {
-            char *token2 = strtok(NULL, " \t"); // process name or "start"
+            char *token2 = strtok(NULL, " \t");
             if (!token2) {
-                print_to_screen("Usage: process <dummy1|dummy2|dummy3|start> [priority]\n");
+                print_to_screen("Usage: process <dummy1|dummy2|dummy3|syscall test|process test|start> [priority]\n");
                 continue;
             }
             if (strcmp(token2, "start") == 0) {
@@ -211,8 +213,48 @@ void cli_loop(void) {
                 continue;
             }
             
-            int priority = 1;  // default priority
-            char *token3 = strtok(NULL, " \t");  // optional priority value
+            int priority = 1;
+            char *token3 = strtok(NULL, " \t"); 
+            char *token4 = strtok(NULL, " \t");
+
+            if (strcmp(token2, "syscall") == 0 && token3 && strcmp(token3, "test") == 0) {
+                if (token4) priority = atoi(token4);
+                print_to_screen("Queueing syscall_test process...\n");
+        
+                uint32_t *stack_top = (uint32_t *) kmalloc(4096);
+                if (!stack_top) {
+                    print_to_screen("Error: Unable to allocate process stack.\n");
+                    continue;
+                }
+        
+                create_process(
+                    get_new_pid(),
+                    (uint32_t *) syscall_test,
+                    stack_top + (4096 / sizeof(uint32_t)),
+                    priority
+                );
+                continue;
+            }
+
+            if (strcmp(token2, "process") == 0 && token3 && strcmp(token3, "test") == 0) {
+                if (token4) priority = atoi(token4);
+                print_to_screen("Queueing process_test process...\n");
+        
+                uint32_t *stack_top = (uint32_t *) kmalloc(4096);
+                if (!stack_top) {
+                    print_to_screen("Error: Unable to allocate process stack.\n");
+                    continue;
+                }
+        
+                create_process(
+                    get_new_pid(),
+                    (uint32_t *) process_test,
+                    stack_top + (4096 / sizeof(uint32_t)),
+                    priority
+                );
+                continue;
+            }
+
             if (token3) {
                 priority = atoi(token3);
             }
@@ -385,10 +427,9 @@ void kernel_main(uint32_t multiboot_info)
     asm volatile("sti");
     init_syscalls();
     debug_print("DEBUG: System calls initialized.");
-    
+
     init_process_management();
     debug_print("DEBUG: Process management initialized.");
-
     cli_loop();
     
     asm volatile("cli");
