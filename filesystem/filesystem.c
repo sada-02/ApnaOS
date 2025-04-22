@@ -29,7 +29,7 @@ void format_disk() {
     }
 
     for (int i = 0; i < MAX_FILES; i++) {
-        root_directory[i].inode_number = 0; // Mark as empty
+        root_directory[i].inode_number = 0; 
     }
 
     for (int i = 0; i < BLOCK_COUNT; i++) {
@@ -65,7 +65,6 @@ int allocate_block() {
     return -1; 
 }
 
-// Finds a free block in the disk storage
 int allocate_blocks(int inode_index, size_t required_blocks) {
     int allocated = 0;
     for (int i = 0; i < MAX_BLOCKS_PER_FILE && allocated < required_blocks; i++) {
@@ -79,8 +78,6 @@ int allocate_blocks(int inode_index, size_t required_blocks) {
     return allocated;
 }
 
-
-// Creates a new file and assigns an inode
 int create_file(const char* filename) {
     int inode_index = allocate_inode();
     if (inode_index == -1) {
@@ -90,7 +87,7 @@ int create_file(const char* filename) {
 
     int block_index = allocate_block();
     if (block_index == -1) {
-        inode_table[inode_index].inode_number = 0; // Free the inode
+        inode_table[inode_index].inode_number = 0; 
         debug_print("ERROR: No free disk space.");
         return -1;
     }
@@ -101,7 +98,7 @@ int create_file(const char* filename) {
 
     // Add to root directory
     for (int i = 0; i < MAX_FILES; i++) {
-        if (root_directory[i].inode_number == 0) { // Empty slot
+        if (root_directory[i].inode_number == 0) {
             strncpy(root_directory[i].filename, filename, MAX_FILENAME_LEN);
             root_directory[i].inode_number = inode_index + 1;
             debug_print("DEBUG: File created.");
@@ -147,7 +144,7 @@ int read_file(const char* filename, char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
-            int block_index = inode_table[inode_index].blocks[0]; // First direct block
+            int block_index = inode_table[inode_index].blocks[0];
             if (block_index == -1) {
                 debug_print("ERROR: File has no allocated blocks.");
                 return -1;
@@ -170,7 +167,7 @@ int write_file(const char* filename, const char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
-            int block_index = inode_table[inode_index].blocks[0]; // First direct block
+            int block_index = inode_table[inode_index].blocks[0];
             if (block_index == -1) {
                 debug_print("ERROR: File has no allocated blocks.");
                 return -1;
