@@ -176,8 +176,7 @@ void syscall_test(void) {
         debug_print("DEBUG: Failed to create parent process");
         return;
     }
-
-    schedule();
     
     debug_print("DEBUG: Fork and wait syscall tests complete");
+    exit_syscall(0); 
 }
