@@ -58,7 +58,7 @@ int allocate_block() {
     for (int i = 0; i < BLOCK_COUNT; i++) {
         if (block_bitmap[i] == 0) { 
             block_bitmap[i] = 1; 
-            sb.free_blocks--; /
+            sb.free_blocks--; 
             return i; 
         }
     }
