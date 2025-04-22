@@ -49,9 +49,9 @@ grub-mkrescue -o os.iso iso
 
 echo "Running OS in QEMU..."
 qemu-system-i386 \
-    -kernel kernel.bin \
-    -cdrom os.iso \
-    -serial stdio \
-    -vga std
+  -cdrom os.iso \
+  -boot d \
+  -serial stdio \
+  -vga std
 
 echo "Done."

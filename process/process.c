@@ -88,7 +88,7 @@ void schedule() {
     next_process->state = STATE_RUNNING;
     
     debug_print("DEBUG: Switching to process:");
-    debug_int(next_process->pid);\
+    debug_int(next_process->pid);
     if (next_process->is_new_child) {
         next_process->is_new_child = false;
         
