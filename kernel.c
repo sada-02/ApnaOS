@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stddef.h>
+#include <vmm.h>
 
 __attribute__((section(".multiboot")))
 __attribute__((used)) static const struct {
@@ -162,6 +163,12 @@ void print_to_screen(const char *message)
 }
 
 #define MAX_INPUT_LENGTH 128
+
+if (vmm_init()) {
+        print("VMM initialized.\n"); //  added for VMM
+    } else {
+        print("VMM failed to initialize.\n");
+    }
 
 typedef struct {
     const char *name;
