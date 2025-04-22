@@ -1,4 +1,3 @@
-// Dummy process 1 for my custom OS.
 extern void print_to_screen(const char*);
 extern void exit_syscall(int status);
 
