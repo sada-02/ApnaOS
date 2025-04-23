@@ -284,26 +284,33 @@ void cli_loop(void) {
                 print_to_screen("Error: Unknown process name.\n");
             }
         }
-        else if (strcmp(token1, "mkfile") == 0) {
-            char *token2 = strtok(NULL, " \t");
-            if (!token2) {
-                print_to_screen("Usage: mkfile <filename>\n");
+        else if (strcmp(token1, "file") == 0) {
+            char *operation = strtok(NULL, " \t");
+            if (!operation) {
+            print_to_screen("Usage: file <operation> <filename> [args]\n");
+            continue;
+            }
+
+            if (strcmp(operation, "make") == 0) {
+            char *filename = strtok(NULL, " \t");
+            if (!filename) {
+                print_to_screen("Usage: file make <filename>\n");
                 continue;
             }
-            if (create_file(token2) == -1) {
+            if (create_file(filename) == -1) {
                 print_to_screen("Error: Failed to create file.\n");
             } else {
                 print_to_screen("File created successfully.\n");
             }
-        }
-        else if (strcmp(token1, "readfile") == 0) {
-            char *token2 = strtok(NULL, " \t");
-            if (!token2) {
-                print_to_screen("Usage: readfile <filename>\n");
+            }
+            else if (strcmp(operation, "read") == 0) {
+            char *filename = strtok(NULL, " \t");
+            if (!filename) {
+                print_to_screen("Usage: file read <filename>\n");
                 continue;
             }
             char buffer[128];
-            int bytes_read = read_file(token2, buffer, sizeof(buffer));
+            int bytes_read = read_file(filename, buffer, sizeof(buffer));
             if (bytes_read == -1) {
                 print_to_screen("Error: Failed to read file.\n");
             } else {
@@ -312,50 +319,57 @@ void cli_loop(void) {
                 print_to_screen(buffer);
                 print_to_screen("\n");
             }
-        }
-        else if (strcmp(token1, "writefile") == 0) {
-            char *token2 = strtok(NULL, " \t");
-            char *token3 = strtok(NULL, "\n"); // Remaining input as data
-            if (!token2 || !token3) {
-                print_to_screen("Usage: writefile <filename> <data>\n");
+            }
+            else if (strcmp(operation, "write") == 0) {
+            char *filename = strtok(NULL, " \t");
+            char *data = strtok(NULL, "\n"); // Remaining input as data
+            if (!filename || !data) {
+                print_to_screen("Usage: file write <filename> <data>\n");
                 continue;
             }
-            if (write_file(token2, token3, strlen(token3)) == -1) {
+            if (write_file(filename, data, strlen(data)) == -1) {
                 print_to_screen("Error: Failed to write to file.\n");
             } else {
                 print_to_screen("Data written to file successfully.\n");
             }
-        }
-        else if (strcmp(token1, "appendfile") == 0) {
-            char *token2 = strtok(NULL, " \t");
-            char *token3 = strtok(NULL, "\n"); // Remaining input as data
-            if (!token2 || !token3) {
-                print_to_screen("Usage: appendfile <filename> <data>\n");
+            }
+            else if (strcmp(operation, "append") == 0) {
+            char *filename = strtok(NULL, " \t");
+            char *data = strtok(NULL, "\n"); // Remaining input as data
+            if (!filename || !data) {
+                print_to_screen("Usage: file append <filename> <data>\n");
                 continue;
             }
-            if (append_to_file(token2, token3, strlen(token3)) == -1) {
+            if (append_to_file(filename, data, strlen(data)) == -1) {
                 print_to_screen("Error: Failed to append to file.\n");
             } else {
                 print_to_screen("Data appended to file successfully.\n");
             }
-        }
-        else if (strcmp(token1, "rmfile") == 0) {
-            char *token2 = strtok(NULL, " \t");
-            if (!token2) {
-                print_to_screen("Usage: rmfile <filename>\n");
+            }
+            else if (strcmp(operation, "rm") == 0) {
+            char *filename = strtok(NULL, " \t");
+            if (!filename) {
+                print_to_screen("Usage: file rm <filename>\n");
                 continue;
             }
-            if (delete_file(token2) == -1) {
+            if (delete_file(filename) == -1) {
                 print_to_screen("Error: Failed to delete file.\n");
             } else {
                 print_to_screen("File deleted successfully.\n");
+            }
+            }
+            else if (strcmp(operation, "ls") == 0) {
+            list_files();
+            }
+            else {
+            print_to_screen("Unknown file operation. Use 'make', 'read', 'write', 'append', 'rm', or 'ls'.\n");
             }
         }
         else if (strcmp(token1, "ls") == 0) {
             list_files();
         }
         else {
-            print_to_screen("Unknown command. Use 'process', 'mkfile', 'readfile', 'writefile', 'appendfile', 'rmfile', 'ls', or 'exit'.\n");
+            print_to_screen("Unknown command. Use 'process', 'file', 'ls', or 'exit'.\n");
         }
     }
 }

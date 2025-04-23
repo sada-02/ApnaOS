@@ -33,10 +33,7 @@ int strncmp(const char* s1, const char* s2, size_t n) {
         s1++;
         s2++;
     }
-    if (n != (size_t)-1) {
-        return (unsigned char)*s1 - (unsigned char)*s2;
-    }
-    return 0;
+    return n == (size_t)-1 ? 0 : (unsigned char)*s1 - (unsigned char)*s2;
 }
 
 char* strncpy(char* dest, const char* src, size_t n) {
