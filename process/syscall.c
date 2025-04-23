@@ -146,7 +146,6 @@ void exit_syscall(int status) {
     debug_print("DEBUG: Exit syscall started with status:");
     debug_int(status);
     
-    // Get the current process
     PCB* proc = get_current_process();
     if (proc == NULL) {
         debug_print("DEBUG: Exit failed - no current process");
