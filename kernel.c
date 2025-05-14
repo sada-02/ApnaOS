@@ -220,17 +220,10 @@ void cli_loop(void) {
             if (strcmp(token2, "syscall") == 0 && token3 && strcmp(token3, "test") == 0) {
                 if (token4) priority = atoi(token4);
                 print_to_screen("Queueing syscall_test process...\n");
-        
-                uint32_t *stack_top = (uint32_t *) kmalloc(4096);
-                if (!stack_top) {
-                    print_to_screen("Error: Unable to allocate process stack.\n");
-                    continue;
-                }
-        
+                
                 create_process(
                     get_new_pid(),
                     (uint32_t *) syscall_test,
-                    stack_top + (4096 / sizeof(uint32_t)),
                     priority, 1, 2
                 );
                 continue;
@@ -240,16 +233,9 @@ void cli_loop(void) {
                 if (token4) priority = atoi(token4);
                 print_to_screen("Queueing process_test process...\n");
         
-                uint32_t *stack_top = (uint32_t *) kmalloc(4096);
-                if (!stack_top) {
-                    print_to_screen("Error: Unable to allocate process stack.\n");
-                    continue;
-                }
-        
                 create_process(
                     get_new_pid(),
                     (uint32_t *) process_test,
-                    stack_top + (4096 / sizeof(uint32_t)),
                     priority, 1, 2
                 );
                 continue;
@@ -263,16 +249,10 @@ void cli_loop(void) {
             for (int i = 0; i < num_process_commands; i++) {
                 if (strcmp(token2, process_commands[i].name) == 0) {
                     print_to_screen("Queueing process...\n");
-                    uint32_t *stack_top = (uint32_t *) kmalloc(4096);
-                    if (!stack_top) {
-                        print_to_screen("Error: Unable to allocate process stack.\n");
-                        found = 1;
-                        break;
-                    }
+                    
                     create_process(
                         get_new_pid(),
                         (uint32_t *) process_commands[i].func,
-                        stack_top + (4096 / sizeof(uint32_t)),
                         priority,
                         1, 2
                     );

@@ -165,11 +165,18 @@ void schedule() {
 }
 
 
-PCB* create_process(uint32_t pid, uint32_t* entry_point, uint32_t* stack_top, int priority, int deadline, int time_to_run) {
+PCB* create_process(uint32_t pid, uint32_t* entry_point, int priority, int deadline, int time_to_run) {
     PCB* new_process = (PCB*) kmalloc(sizeof(PCB));
     if (new_process == NULL) {
         return NULL;
     }
+
+    uint32_t *stack_top = (uint32_t *) kmalloc(4096);
+    if (!stack_top) {
+        return NULL;
+    }
+    stack_top += 4096 / sizeof(uint32_t);
+
     new_process->pid = pid;
     new_process->state = STATE_NEW;
     new_process->priority = priority;  

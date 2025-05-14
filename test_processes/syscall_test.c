@@ -111,11 +111,8 @@ void test_multiple_forks(void) {
 
 void syscall_test(void) {
     debug_print("DEBUG: Starting fork and wait syscall tests");
-
-    uint32_t* parent_stack = (uint32_t*)kmalloc(4096);
-    uint32_t* parent_stack_top = parent_stack + (4096/sizeof(uint32_t) - 16);
     
-    PCB* parent_process = create_process(get_new_pid(), (uint32_t*)test_simple_fork, parent_stack_top ,1, 2, 3);
+    PCB* parent_process = create_process(get_new_pid(), (uint32_t*)test_simple_fork, 1, 2, 3);
     if (parent_process == NULL) {
         debug_print("DEBUG: Failed to create parent process");
         return;

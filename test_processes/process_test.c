@@ -66,8 +66,8 @@ void test_queue_operations(void) {
         debug_print("DEBUG: Queue should be empty - FAIL");
     }
     
-    PCB* p1 = create_process(get_new_pid(), (uint32_t*)test_process_1, (uint32_t*)kmalloc(4096) , 1, 2 , 3);
-    PCB* p2 = create_process(get_new_pid(), (uint32_t*)test_process_2, (uint32_t*)kmalloc(4096) , 1, 4, 5);
+    PCB* p1 = create_process(get_new_pid(), (uint32_t*)test_process_1, 1, 2, 3);
+    PCB* p2 = create_process(get_new_pid(), (uint32_t*)test_process_2, 1, 4, 5);
     
     enqueue_process(&test_queue, p1);
     if (!is_queue_empty(&test_queue)) {
@@ -105,7 +105,7 @@ void test_process_creation(void) {
     debug_print("DEBUG: Testing process creation");
     
     uint32_t initial_pid = get_new_pid();
-    PCB* p1 = create_process(get_new_pid(), (uint32_t*)test_process_1, (uint32_t*)kmalloc(4096) , 1, 2 , 3);
+    PCB* p1 = create_process(get_new_pid(), (uint32_t*)test_process_1, 1, 2, 3);
     
     if (p1 != NULL) {
         debug_print("DEBUG: Process created successfully - PASS");
@@ -136,20 +136,10 @@ void test_scheduler(void) {
     while (!is_queue_empty(&ready_queue)) {
         dequeue_process(&ready_queue);
     }
-    
-    // Create test processes with proper stack allocation
-    uint32_t* stack1 = (uint32_t*)kmalloc(4096);
-    uint32_t* stack2 = (uint32_t*)kmalloc(4096);
-    uint32_t* stack3 = (uint32_t*)kmalloc(4096);
 
-    // Set stack pointers to the top of the stack (stacks grow downward)
-    stack1 += 1024;  // 4096 bytes / 4 bytes per uint32_t = 1024 elements
-    stack2 += 1024;
-    stack3 += 1024;
-
-    test_processes[0] = create_process(get_new_pid(), (uint32_t*)test_process_1, stack1 , 1, 2 , 3);
-    test_processes[1] = create_process(get_new_pid(), (uint32_t*)test_process_2, stack2 , 1, 4, 5);
-    test_processes[2] = create_process(get_new_pid(), (uint32_t*)test_process_3, stack3 , 1, 6, 7);
+    test_processes[0] = create_process(get_new_pid(), (uint32_t*)test_process_1, 1, 2, 3);
+    test_processes[1] = create_process(get_new_pid(), (uint32_t*)test_process_2, 1, 4, 5);
+    test_processes[2] = create_process(get_new_pid(), (uint32_t*)test_process_3, 1, 6, 7);
     
     debug_print("DEBUG: Created test processes");
 
@@ -168,7 +158,7 @@ void process_test(void) {
     
     // test_queue_operations();
     // test_process_creation();
-    create_process(get_new_pid(), (uint32_t*)test_scheduler, (uint32_t*)kmalloc(4096)+1024 , 1, 2 , 3);
+    create_process(get_new_pid(), (uint32_t*)test_scheduler, 1, 2, 3);
     schedule();
     
     debug_print("DEBUG: Comprehensive process management test complete");

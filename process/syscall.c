@@ -65,7 +65,7 @@ int fork_syscall(void) {
     uint32_t* child_stack_base = (uint32_t*)kmalloc(4096);
     if (child_stack_base == NULL) {
         debug_print("DEBUG: Fork failed - stack allocation error");
-        return -1;  
+        return -1;
     }
 
     uint32_t stack_offset = (uint32_t)parent->user_stack_ptr - (uint32_t)parent->user_stack_base;
@@ -146,6 +146,7 @@ void exit_syscall(int status) {
     debug_print("DEBUG: Exit syscall started with status:");
     debug_int(status);
     
+    // Get the current process
     PCB* proc = get_current_process();
     if (proc == NULL) {
         debug_print("DEBUG: Exit failed - no current process");
