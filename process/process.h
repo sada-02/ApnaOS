@@ -51,7 +51,7 @@ PCB* dequeue_process(ProcessQueue* queue);
 void allocate_kernel_stack(PCB* process);
 
 void schedule(void);
-PCB* create_process(uint32_t pid, uint32_t* entry_point, int priority, int dadline, int time_to_run);
+PCB* create_process(uint32_t pid, uint32_t* entry_point, int priority, int deadline, int time_to_run);
 uint32_t get_new_pid(void);
 
 void init_process_management(void);
