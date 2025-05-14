@@ -17,7 +17,6 @@ typedef struct PCB {
     uint32_t pid;
     uint32_t state;
     uint32_t* user_stack_ptr;
-    uint32_t* program_counter;
     uint32_t cr3;
     int priority;  // Process priority (lower number = higher priority)
     int deadline;  // Deadline for the process

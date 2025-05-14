@@ -115,6 +115,7 @@ void allocate_kernel_stack(PCB* process) {
     process->kernel_stack_base = (uint32_t*)kmalloc(KERNEL_STACK_SIZE);
     process->kernel_stack_ptr = process->kernel_stack_base + (KERNEL_STACK_SIZE/sizeof(uint32_t));
 }
+
 void schedule() {
     if (current_process != NULL) {
         if (current_process->state == STATE_RUNNING) {
@@ -134,6 +135,14 @@ void schedule() {
     
     debug_print("DEBUG: Switching to process:");
     debug_int(next_process->pid);
+    
+    if (current_process != NULL) {
+        __asm__ volatile (
+            "movl %%esp, %0\n\t"
+            : "=m" (current_process->kernel_stack_ptr)
+        );
+    }
+    
     if (next_process->is_new_child) {
         next_process->is_new_child = false;
         
@@ -144,13 +153,6 @@ void schedule() {
             "popl %%ebp\n\t"        
             "ret\n\t"              
             : : "r" (next_process->user_stack_ptr) : "eax"
-        );
-    }
-    
-    if (current_process != NULL) {
-        __asm__ volatile (
-            "movl %%esp, %0\n\t"
-            : "=m" (current_process->kernel_stack_ptr)
         );
     }
     
@@ -183,11 +185,11 @@ PCB* create_process(uint32_t pid, uint32_t* entry_point, int priority, int deadl
     new_process->deadline = deadline;
     new_process->time_to_run = time_to_run;
     new_process->user_stack_base = stack_top - 1024;
+
     *(--stack_top) = (uint32_t)entry_point;
     *(--stack_top) = 0x0;
     
     new_process->user_stack_ptr = stack_top;
-    new_process->program_counter = entry_point;
 
     new_process->cr3 = 0;
     new_process->next = NULL;

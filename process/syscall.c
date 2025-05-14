@@ -36,13 +36,11 @@ static PCB* find_zombie_child(PCB* parent) {
 }
 
 int fork_syscall(void) {
-    uint32_t* return_addr;
     uint32_t* stack_ptr;
 
     __asm__ volatile(
-        "movl 4(%%ebp), %0\n\t"
-        "lea (%%ebp), %1\n\t" 
-        : "=r" (return_addr), "=r" (stack_ptr)
+        "lea (%%ebp), %0\n\t" 
+        : "=r" (stack_ptr)
     );
 
     debug_print("DEBUG: Fork syscall started");
