@@ -148,7 +148,7 @@ if (current_process != NULL && current_process->state == STATE_RUNNING) {
     current_process->vruntime += delta;
 
     current_process->state = STATE_READY;
-    if (counter == 1) {
+    if (is_cfs == 1) {
         cfs_enqueue(current_process);
     } else {
         enqueue_process(&ready_queue, current_process);
