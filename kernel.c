@@ -294,7 +294,7 @@ void cli_loop(void) {
             if (bytes_read == -1) {
                 print_to_screen("Error: Failed to read file.\n");
             } else {
-                buffer[bytes_read] = '\0'; // Null-terminate the string
+                buffer[bytes_read] = '\0'; 
                 print_to_screen("File content: ");
                 print_to_screen(buffer);
                 print_to_screen("\n");
@@ -302,7 +302,7 @@ void cli_loop(void) {
             }
             else if (strcmp(operation, "write") == 0) {
             char *filename = strtok(NULL, " \t");
-            char *data = strtok(NULL, "\n"); // Remaining input as data
+            char *data = strtok(NULL, "\n"); 
             if (!filename || !data) {
                 print_to_screen("Usage: file write <filename> <data>\n");
                 continue;
@@ -315,7 +315,7 @@ void cli_loop(void) {
             }
             else if (strcmp(operation, "append") == 0) {
             char *filename = strtok(NULL, " \t");
-            char *data = strtok(NULL, "\n"); // Remaining input as data
+            char *data = strtok(NULL, "\n"); 
             if (!filename || !data) {
                 print_to_screen("Usage: file append <filename> <data>\n");
                 continue;
@@ -341,6 +341,20 @@ void cli_loop(void) {
             else if (strcmp(operation, "ls") == 0) {
             list_files();
             }
+            else if (strcmp(operation, "chmod") == 0) {
+                char *filename = strtok(NULL, " \t");
+                char *perm_str = strtok(NULL, " \t");
+                if (!filename || !perm_str) {
+                    print_to_screen("Usage: file chmod <filename> <permissions>\n");
+                    continue;
+                }
+                uint16_t new_permissions = (uint16_t)atoi(perm_str);
+                if (chmod_file(filename, new_permissions) == -1) {
+                    print_to_screen("Error: Failed to change file permissions.\n");
+                } else {
+                    print_to_screen("File permissions changed successfully.\n");
+                }
+            }
             else {
             print_to_screen("Unknown file operation. Use 'make', 'read', 'write', 'append', 'rm', or 'ls'.\n");
             }
@@ -352,45 +366,6 @@ void cli_loop(void) {
             print_to_screen("Unknown command. Use 'process', 'file', 'ls', or 'exit'.\n");
         }
     }
-}
-
-void test_filesystem() {
-    print_to_screen("Testing filesystem...\n");
-
-    const char *filename = "testfile.txt";
-    read_line((char *)filename, MAX_INPUT_LENGTH);
-    int inode = create_file(filename);
-    if (inode == -1) {
-        print_to_screen("Failed to create file.\n");
-        return;
-    }
-    print_to_screen("File created successfully.\n");
-    
-    const char *data = "Hello, ApnaOS!";
-    read_line((char *)data, MAX_INPUT_LENGTH);
-    int bytes_written = write_file(filename, data, strlen(data));
-    if (bytes_written == -1) {
-        print_to_screen("Failed to write to file.\n");
-        return;
-    }
-    print_to_screen("Data written to file successfully.\n");
-    char buffer[128];
-    int bytes_read = read_file(filename, buffer, sizeof(buffer));
-    if (bytes_read == -1) {
-        print_to_screen("Failed to read from file.\n");
-        return;
-    }
-    buffer[bytes_read] = '\0'; 
-    print_to_screen("Data read from file: ");
-    print_to_screen(buffer);
-    print_to_screen("\n");
-    if (delete_file(filename) == -1) {
-        print_to_screen("Failed to delete file.\n");
-        return;
-    }
-    print_to_screen("File deleted successfully.\n");
-
-    print_to_screen("Filesystem test completed.\n");
 }
 
 void kernel_main(uint32_t multiboot_info)
