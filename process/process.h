@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "rbtree.h"
 
 #define KERNEL_STACK_SIZE 4096
 
@@ -27,7 +28,9 @@ typedef struct PCB {
 
     int exit_status;
     bool is_new_child;
-    
+    uint64_t weight;     // scheduler weight (from priority or “nice”)
+    uint64_t vruntime;   // cumulative virtual runtime
+    struct rb_node vr_node;  // node for the CFS tree
     uint32_t* user_stack_base;    // User stack base
     uint32_t* kernel_stack_base;  // Kernel stack base
     uint32_t* kernel_stack_ptr;   // Current kernel stack pointer
