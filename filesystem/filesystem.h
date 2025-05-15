@@ -40,6 +40,7 @@ int read_file(const char* filename, char* buffer, size_t size);
 int write_file(const char* filename, const char* buffer, size_t size);
 int append_to_file(const char* filename, const char* buffer, size_t size);
 int delete_file(const char* filename);
+int chmod_file(const char* filename, uint16_t new_permissions);
 void list_files();
 
 #endif 
