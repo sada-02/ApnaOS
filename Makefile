@@ -9,7 +9,7 @@ ASFLAGS = -f elf32
 # Files
 SRC_C = kernel.c memory.c process.c process_test.c filesystem.c test_processes/dummy1.c test_processes/dummy2.c test_processes/dummy3.c
 SRC_ASM = boot.asm
-OBJ = boot.o kernel.o memory.o process.o process_test.o filesystem.o dummy1.o dummy2.o dummy3.o
+OBJ = boot.o kernel.o memory.o process.o process_test.o filesystem.o dummy1.o dummy2.o dummy3.o rbtree.o
 KERNEL = kernel.bin
 ISO_DIR = iso/boot
 ISO = os.iso
@@ -50,9 +50,12 @@ dummy2.o: test_processes/dummy2.c
 dummy3.o: test_processes/dummy3.c
 	$(CC) $(CFLAGS) test_processes/dummy3.c -o dummy3.o
 
+rbtree.o: rbtree.c rbtree.h
+	$(CC) $(CFLAGS) rbtree.c -o rbtree.o
+
 # Link everything
 $(KERNEL): $(OBJ) linker.ld
-	$(LD) $(LDFLAGS) -o $(KERNEL) $(OBJ)
+	$(CC) -nostdlib -m32 -T linker.ld -o $(KERNEL) $(OBJ) -lgcc
 
 # Prepare ISO directory
 prepare-iso: $(KERNEL)
