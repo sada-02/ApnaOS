@@ -1,7 +1,8 @@
 #include "process.h"
 #include "../memory/memory.h"
 #include "syscall.h"
-
+#include "rbtree.h"
+#define DEFAULT_NORM_WEIGHT 1024
 PCB* current_process = NULL;
 ProcessQueue ready_queue = {NULL, NULL};
 PCB* process_table_head = NULL;
@@ -12,6 +13,7 @@ extern void print_to_screen(const char* message);
 extern void debug_int(int val);
 extern void cli_loop(void);
 
+struct rb_root cfs_rq = RB_ROOT; 
 uint32_t get_new_pid() {
     return next_pid++;
 }
@@ -93,6 +95,29 @@ void enqueue_process_sjf(ProcessQueue* queue, PCB* process) {
         queue->rear = process;
     }
 }
+static void cfs_enqueue(PCB *p) {
+    struct rb_node **link = &cfs_rq.rb_node, *parent = NULL;
+    while (*link) {
+        PCB *q = rb_entry(*link, PCB, vr_node);
+        parent = *link;
+        if (p->vruntime < q->vruntime)
+            link = &(*link)->rb_left;
+        else
+            link = &(*link)->rb_right;
+    }
+    rb_link_node(&p->vr_node, parent, link);
+    rb_insert_color(&p->vr_node, &cfs_rq);
+}
+
+static PCB* cfs_dequeue_min(void) {
+    struct rb_node *n = rb_first(&cfs_rq);
+    if (!n) return NULL;
+    PCB *p = rb_entry(n, PCB, vr_node);
+    rb_erase(n, &cfs_rq);
+    return p;
+}
+
+
 PCB* dequeue_process(ProcessQueue* queue) {
     if (is_queue_empty(queue)) {
         return NULL;
@@ -117,14 +142,27 @@ void allocate_kernel_stack(PCB* process) {
 }
 
 void schedule() {
-    if (current_process != NULL) {
-        if (current_process->state == STATE_RUNNING) {
-            current_process->state = STATE_READY;
-            enqueue_process(&ready_queue, current_process);
-        }
+int is_cfs = 0;
+if (current_process != NULL && current_process->state == STATE_RUNNING) {
+    uint64_t delta = DEFAULT_NORM_WEIGHT / current_process->weight;
+    current_process->vruntime += delta;
+
+    current_process->state = STATE_READY;
+    if (counter == 1) {
+        cfs_enqueue(current_process);
+    } else {
+        enqueue_process(&ready_queue, current_process);
     }
+}
     
-    PCB* next_process = dequeue_process(&ready_queue);
+PCB* next_process;
+
+if (is_cfs == 1) {
+    next_process = cfs_dequeue_min();
+ } 
+ else{
+    next_process = dequeue_process(&ready_queue);
+ }
     if (next_process == NULL) {
         debug_print("DEBUG: No more processes in ready queue");
         cli_loop();
