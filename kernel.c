@@ -26,6 +26,7 @@ __attribute__((used)) static const struct {
 #include "interrupts/interrupts.h"
 
 #include "filesystem/filesystem.h" 
+#include <string.h>
 
 #include "serial.h"
 
