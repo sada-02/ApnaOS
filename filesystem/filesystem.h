@@ -6,7 +6,7 @@
 #include "../keyboard/string.h"
 
 #define BLOCK_COUNT 1024        // No of blocks
-#define BLOCK_SIZE 4096         // 4 KB
+#define BLOCK_SIZE 4096         // size 4 KB each
 #define MAX_BLOCKS_PER_FILE 4   // 4 blocks or 16 KB size
 #define MAX_FILES 256           // 4 * 256 * 4 KB = 4 MB
 #define MAX_FILENAME_LEN 255

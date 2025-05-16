@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include "../keyboard/string.h"
 #include "filesystem.h"
-#define min(a, b) ((a) < (b) ? (a) : (b))
-#define max(a, b) ((a) > (b) ? (a) : (b))
+#define min(a, b) (a < b ? a : b)
+#define max(a, b) (a > b ? a : b)
 
 Superblock sb;
 Inode inode_table[MAX_FILES];
@@ -81,6 +81,7 @@ int allocate_blocks(int inode_index, size_t required_blocks) {
     return allocated;
 }
 
+// we check whether user is authorised for then function he/she wants to perform or not..
 int check_permissions(uint16_t permissions, int mode) {
     switch (mode) {
         case 0: return (permissions & 0b100) != 0; 
@@ -142,7 +143,8 @@ int delete_file(const char* filename) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
-            // Check write permission before deleting
+            // it's crutial step warna :/ 
+            // To check the write permission before deleting the file
             if (!check_permissions(inode_table[inode_index].permissions, 1)) {
                 debug_print("ERROR: Permission denied to delete file.");
                 return -1;
@@ -175,7 +177,7 @@ int read_file(const char* filename, char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
-            // Check read permission before reading
+            // Check the read permission before reading the file
             if (!check_permissions(inode_table[inode_index].permissions, 0)) {
                 debug_print("ERROR: Permission denied to read file.");
                 return -1;
@@ -209,7 +211,7 @@ int write_file(const char* filename, const char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
 
             int inode_index = root_directory[i].inode_number - 1;
-            // Check write permission before writing
+            // as we should check write permission before writing/modifiying the file
             if (!check_permissions(inode_table[inode_index].permissions, 1)) {
                 debug_print("ERROR: Permission denied to write file.");
                 return -1;
@@ -254,7 +256,7 @@ int append_to_file(const char* filename, const char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
 
             int inode_index = root_directory[i].inode_number - 1;
-            // Check write permission before appending
+            // To check write permission before appending
             if (!check_permissions(inode_table[inode_index].permissions, 1)) {
                 debug_print("ERROR: Permission denied to append to file.");
                 return -1;
