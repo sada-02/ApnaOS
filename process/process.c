@@ -95,6 +95,7 @@ void enqueue_process_sjf(ProcessQueue* queue, PCB* process) {
         queue->rear = process;
     }
 }
+
 static void cfs_enqueue(PCB *p) {
     struct rb_node **link = &cfs_rq.rb_node, *parent = NULL;
     while (*link) {
@@ -142,27 +143,14 @@ void allocate_kernel_stack(PCB* process) {
 }
 
 void schedule() {
-int is_cfs = 0;
-if (current_process != NULL && current_process->state == STATE_RUNNING) {
-    uint64_t delta = DEFAULT_NORM_WEIGHT / current_process->weight;
-    current_process->vruntime += delta;
-
-    current_process->state = STATE_READY;
-    if (is_cfs == 1) {
-        cfs_enqueue(current_process);
-    } else {
-        enqueue_process(&ready_queue, current_process);
+    if (current_process != NULL) {
+        if (current_process->state == STATE_RUNNING) {
+            current_process->state = STATE_READY;
+            enqueue_process(&ready_queue, current_process);
+        }
     }
-}
     
-PCB* next_process;
-
-if (is_cfs == 1) {
-    next_process = cfs_dequeue_min();
- } 
- else{
-    next_process = dequeue_process(&ready_queue);
- }
+    PCB* next_process = dequeue_process(&ready_queue);
     if (next_process == NULL) {
         debug_print("DEBUG: No more processes in ready queue");
         cli_loop();
@@ -180,8 +168,8 @@ if (is_cfs == 1) {
             : "=m" (current_process->kernel_stack_ptr)
         );
     }
-    
-    if (next_process->is_new_child) {
+
+     if (next_process->is_new_child) {
         next_process->is_new_child = false;
         
         current_process = next_process;
