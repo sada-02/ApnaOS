@@ -41,7 +41,7 @@ void rb_insert_color(struct rb_node *node, struct rb_root *root)
             rb_rotate_left(gparent, root);
         }
     }
-    /* ensure root is always black */
+    
     root->rb_node->rb_red = false;
 }
 void rb_erase(struct rb_node *node, struct rb_root *root)
@@ -129,7 +129,6 @@ color_fixup:
                     child = root->rb_node;
                 }
             } else {
-                /* symmetric code for right child */
                 sibling = parent->rb_left;
                 if (sibling->rb_red) {
                     sibling->rb_red = false;
