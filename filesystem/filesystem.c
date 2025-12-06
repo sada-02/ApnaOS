@@ -12,7 +12,9 @@ char storage[BLOCK_COUNT][BLOCK_SIZE];
 int block_bitmap[BLOCK_COUNT];
 
 static uint32_t current_dir_inode = 1;
-static char current_path[MAX_PATH_LEN] = "/"; 
+static char current_path[MAX_PATH_LEN] = "/";
+static int current_user_space = 0;
+static uint32_t user_space_inodes[MAX_USERS]; 
 
 extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
@@ -35,7 +37,12 @@ void format_disk() {
         inode_table[i].size = 0;
         inode_table[i].file_type = FILE_TYPE_REGULAR;
         inode_table[i].parent_inode = 0;
+        inode_table[i].owner_id = 0;
         memset(inode_table[i].blocks, -1, sizeof(inode_table[i].blocks));
+    }
+    
+    for (int i = 0; i < MAX_USERS; i++) {
+        user_space_inodes[i] = 0;
     }
     
     inode_table[0].inode_number = 1;
@@ -43,12 +50,15 @@ void format_disk() {
     inode_table[0].parent_inode = 1;
     inode_table[0].permissions = 0b111;
     inode_table[0].size = 0;
+    inode_table[0].owner_id = 0;
     int root_block = allocate_block();
     if (root_block != -1) {
         inode_table[0].blocks[0] = root_block;
     }
     sb.free_inodes--;
     current_dir_inode = 1;
+    current_user_space = 0;
+    user_space_inodes[0] = 1;
     strncpy(current_path, "/", MAX_PATH_LEN);
 
     for (int i = 0; i < MAX_FILES; i++) {
@@ -117,6 +127,13 @@ int chmod_file(const char* filename, uint16_t new_permissions) {
         if (root_directory[i].inode_number != 0 &&
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             int inode_index = root_directory[i].inode_number - 1;
+            
+            int owner = inode_table[inode_index].owner_id;
+            if (owner != current_user_space && current_user_space != 0) {
+                debug_print("ERROR: Access denied - not file owner.");
+                return -1;
+            }
+            
             inode_table[inode_index].permissions = new_permissions;
             debug_print("DEBUG: Permissions changed.");
             return 0;
@@ -146,6 +163,7 @@ int create_file(const char* filename) {
     inode_table[inode_index].permissions = 0b111;
     inode_table[inode_index].file_type = FILE_TYPE_REGULAR;
     inode_table[inode_index].parent_inode = current_dir_inode;
+    inode_table[inode_index].owner_id = current_user_space;
     
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number == 0) {
@@ -166,6 +184,13 @@ int delete_file(const char* filename) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
+            
+            int owner = inode_table[inode_index].owner_id;
+            if (owner != current_user_space && current_user_space != 0 && owner != 0) {
+                debug_print("ERROR: Access denied - not file owner.");
+                return -1;
+            }
+            
             // it's crutial step warna :/ 
             // To check the write permission before deleting the file
             if (!check_permissions(inode_table[inode_index].permissions, 1)) {
@@ -200,6 +225,13 @@ int read_file(const char* filename, char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
             
             int inode_index = root_directory[i].inode_number - 1;
+            
+            int owner = inode_table[inode_index].owner_id;
+            if (owner != current_user_space && current_user_space != 0 && owner != 0) {
+                debug_print("ERROR: Access denied - not file owner.");
+                return -1;
+            }
+            
             // Check the read permission before reading the file
             if (!check_permissions(inode_table[inode_index].permissions, 0)) {
                 debug_print("ERROR: Permission denied to read file.");
@@ -234,6 +266,13 @@ int write_file(const char* filename, const char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
 
             int inode_index = root_directory[i].inode_number - 1;
+            
+            int owner = inode_table[inode_index].owner_id;
+            if (owner != current_user_space && current_user_space != 0 && owner != 0) {
+                debug_print("ERROR: Access denied - not file owner.");
+                return -1;
+            }
+            
             // as we should check write permission before writing/modifiying the file
             if (!check_permissions(inode_table[inode_index].permissions, 1)) {
                 debug_print("ERROR: Permission denied to write file.");
@@ -279,6 +318,13 @@ int append_to_file(const char* filename, const char* buffer, size_t size) {
             strncmp(root_directory[i].filename, filename, MAX_FILENAME_LEN) == 0) {
 
             int inode_index = root_directory[i].inode_number - 1;
+            
+            int owner = inode_table[inode_index].owner_id;
+            if (owner != current_user_space && current_user_space != 0 && owner != 0) {
+                debug_print("ERROR: Access denied - not file owner.");
+                return -1;
+            }
+            
             // To check write permission before appending
             if (!check_permissions(inode_table[inode_index].permissions, 1)) {
                 debug_print("ERROR: Permission denied to append to file.");
@@ -348,11 +394,14 @@ void list_files() {
         if (root_directory[i].inode_number != 0) {
             int inode_index = root_directory[i].inode_number - 1;
             if (inode_table[inode_index].parent_inode == current_dir_inode) {
-                if (inode_table[inode_index].file_type == FILE_TYPE_DIRECTORY) {
-                    print_to_screen("[DIR] ");
+                int owner = inode_table[inode_index].owner_id;
+                if (owner == current_user_space || current_user_space == 0 || owner == 0) {
+                    if (inode_table[inode_index].file_type == FILE_TYPE_DIRECTORY) {
+                        print_to_screen("[DIR] ");
+                    }
+                    print_to_screen(root_directory[i].filename);
+                    print_to_screen("\n");
                 }
-                print_to_screen(root_directory[i].filename);
-                print_to_screen("\n");
             }
         }
     }
@@ -377,6 +426,7 @@ int create_directory(const char* dirname) {
     inode_table[inode_index].permissions = 0b111;
     inode_table[inode_index].file_type = FILE_TYPE_DIRECTORY;
     inode_table[inode_index].parent_inode = current_dir_inode;
+    inode_table[inode_index].owner_id = current_user_space;
 
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number == 0) {
@@ -492,4 +542,60 @@ int change_directory(const char* path) {
 void get_current_path(char* buffer, size_t size) {
     strncpy(buffer, current_path, size);
     buffer[size - 1] = '\0';
+}
+
+int create_user_space(int user_id) {
+    if (user_id < 0 || user_id >= MAX_USERS) {
+        return -1;
+    }
+    
+    int inode_index = allocate_inode();
+    if (inode_index == -1) {
+        debug_print("ERROR: No free inodes for user space.");
+        return -1;
+    }
+    
+    int block_index = allocate_block();
+    if (block_index == -1) {
+        inode_table[inode_index].inode_number = 0;
+        debug_print("ERROR: No free blocks for user space.");
+        return -1;
+    }
+    
+    inode_table[inode_index].size = 0;
+    inode_table[inode_index].blocks[0] = block_index;
+    inode_table[inode_index].permissions = 0b111;
+    inode_table[inode_index].file_type = FILE_TYPE_DIRECTORY;
+    inode_table[inode_index].parent_inode = inode_table[inode_index].inode_number;
+    inode_table[inode_index].owner_id = user_id;
+    
+    user_space_inodes[user_id] = inode_table[inode_index].inode_number;
+    
+    debug_print("DEBUG: User space created.");
+    return inode_index;
+}
+
+void set_current_user_space(int user_id) {
+    if (user_id < 0 || user_id >= MAX_USERS || user_space_inodes[user_id] == 0) {
+        return;
+    }
+    
+    current_user_space = user_id;
+    current_dir_inode = user_space_inodes[user_id];
+    
+    if (user_id == 0) {
+        strncpy(current_path, "/", MAX_PATH_LEN);
+    } else {
+        strncpy(current_path, "/user", MAX_PATH_LEN);
+    }
+}
+
+int get_current_user_space() {
+    return current_user_space;
+}
+
+void switch_to_root_space() {
+    current_user_space = 0;
+    current_dir_inode = 1;
+    strncpy(current_path, "/", MAX_PATH_LEN);
 }

@@ -30,6 +30,7 @@ __attribute__((used)) static const struct {
 #include <string.h>
 
 #include "serial.h"
+#include "users/users.h"
 
 extern void dummy_process_1(void);
 extern void dummy_process_2(void);
@@ -379,6 +380,8 @@ void cli_loop(void) {
     char cwd[MAX_PATH_LEN];
 
     while (1) {
+        print_to_screen(get_current_username());
+        print_to_screen("@");
         get_current_path(cwd, MAX_PATH_LEN);
         print_to_screen(cwd);
         print_to_screen("> ");
@@ -594,6 +597,51 @@ void cli_loop(void) {
             print_to_screen(path);
             print_to_screen("\n");
         }
+        else if (strcmp(token1, "createuser") == 0) {
+            char *username = strtok(NULL, " \t");
+            if (!username) {
+                print_to_screen("Usage: createuser <username>\n");
+                continue;
+            }
+            
+            print_to_screen("Enter password: ");
+            char password[128];
+            read_line(password, 128);
+            
+            if (create_user(username, password) == -1) {
+                print_to_screen("Error: Failed to create user.\n");
+            } else {
+                print_to_screen("User created successfully.\n");
+            }
+        }
+        else if (strcmp(token1, "openuser") == 0) {
+            char *username = strtok(NULL, " \t");
+            if (!username) {
+                print_to_screen("Usage: openuser <username>\n");
+                continue;
+            }
+            
+            print_to_screen("Enter password: ");
+            char password[128];
+            read_line(password, 128);
+            
+            if (switch_to_user(username, password) == -1) {
+                print_to_screen("Error: Failed to switch user. Check username/password.\n");
+            } else {
+                print_to_screen("Switched to user: ");
+                print_to_screen(username);
+                print_to_screen("\n");
+            }
+        }
+        else if (strcmp(token1, "root") == 0) {
+            switch_to_root();
+            print_to_screen("Switched to root directory.\n");
+        }
+        else if (strcmp(token1, "whoami") == 0) {
+            print_to_screen("Current user: ");
+            print_to_screen(get_current_username());
+            print_to_screen("\n");
+        }
         else if (strcmp(token1, "help") == 0) {
             print_to_screen("\n=== ApnaOS Command Help ===\n\n");
             print_to_screen("FILESYSTEM COMMANDS:\n");
@@ -621,6 +669,12 @@ void cli_loop(void) {
             print_to_screen("  process syscall test [priority]   - Queue syscall test\n");
             print_to_screen("  process process test [priority]   - Queue process test\n");
             print_to_screen("  process start                     - Start scheduled processes\n");
+            print_to_screen("\n");
+            print_to_screen("USER MANAGEMENT:\n");
+            print_to_screen("  createuser <username>     - Create a new user (prompts for password)\n");
+            print_to_screen("  openuser <username>       - Switch to a user (prompts for password)\n");
+            print_to_screen("  root                      - Switch to root directory\n");
+            print_to_screen("  whoami                    - Show current user\n");
             print_to_screen("\n");
             print_to_screen("SYSTEM COMMANDS:\n");
             print_to_screen("  help                  - Show this help message\n");
@@ -652,6 +706,9 @@ void kernel_main(uint32_t multiboot_info)
 
     create_file_system();
     debug_print("DEBUG: Filesystem initialized.");
+    
+    init_user_system();
+    debug_print("DEBUG: User system initialized.");
     
     gdt_install();
     print_to_screen("DEBUG: GDT installed.\n");

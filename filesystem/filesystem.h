@@ -12,6 +12,7 @@
 #define MAX_FILENAME_LEN 255
 #define MAX_PATH_LEN 1024
 #define MAX_ENTRIES_PER_DIR 64
+#define MAX_USERS 16
 
 #define FILE_TYPE_REGULAR 0
 #define FILE_TYPE_DIRECTORY 1
@@ -32,6 +33,7 @@ typedef struct {
     uint16_t permissions;
     uint8_t file_type;
     uint32_t parent_inode;
+    int owner_id;
 } Inode;
 
 typedef struct {
@@ -53,5 +55,9 @@ int create_directory(const char* dirname);
 int change_directory(const char* path);
 void get_current_path(char* buffer, size_t size);
 int resolve_path(const char* path);
+int create_user_space(int user_id);
+void set_current_user_space(int user_id);
+int get_current_user_space();
+void switch_to_root_space();
 
 #endif 

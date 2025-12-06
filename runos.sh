@@ -13,6 +13,7 @@ gcc -m32 -ffreestanding -c kernel.c                    -o bin/kernel.o
 gcc -m32 -ffreestanding -c serial.c                    -o bin/serial.o
 gcc -m32 -ffreestanding -c memory/memory.c             -o bin/memory.o
 gcc -m32 -ffreestanding -c filesystem/filesystem.c     -o bin/filesystem.o
+gcc -m32 -ffreestanding -c users/users.c               -o bin/users.o
 
 echo "Compiling process support & red–black tree..."
 gcc -m32 -ffreestanding -c process/process.c           -o bin/process.o
@@ -44,7 +45,7 @@ gcc -m32 -nostdlib \
     bin/boot.o \
     bin/idt_asm.o bin/exceptions.o bin/irq_asm.o \
     bin/kernel.o bin/serial.o \
-    bin/memory.o bin/filesystem.o \
+    bin/memory.o bin/filesystem.o bin/users.o \
     bin/process.o bin/syscall.o bin/rbtree.o \
     bin/keyboard.o bin/io.o bin/string.o bin/gdt.o bin/gdt_c.o \
     bin/idt.o bin/pic.o bin/interrupts.o \
