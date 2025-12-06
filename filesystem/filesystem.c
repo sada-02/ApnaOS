@@ -9,11 +9,17 @@ Superblock sb;
 Inode inode_table[MAX_FILES];
 DirectoryEntry root_directory[MAX_FILES]; 
 char storage[BLOCK_COUNT][BLOCK_SIZE];
-int block_bitmap[BLOCK_COUNT]; 
+int block_bitmap[BLOCK_COUNT];
+
+static uint32_t current_dir_inode = 1;
+static char current_path[MAX_PATH_LEN] = "/"; 
 
 extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
 extern void itoa(int n, char *str);
+
+int allocate_block();
+int allocate_inode();
 
 void format_disk() {
     sb.inode_count = MAX_FILES;
@@ -27,8 +33,23 @@ void format_disk() {
     for (int i = 0; i < MAX_FILES; i++) {
         inode_table[i].inode_number = 0;
         inode_table[i].size = 0;
+        inode_table[i].file_type = FILE_TYPE_REGULAR;
+        inode_table[i].parent_inode = 0;
         memset(inode_table[i].blocks, -1, sizeof(inode_table[i].blocks));
     }
+    
+    inode_table[0].inode_number = 1;
+    inode_table[0].file_type = FILE_TYPE_DIRECTORY;
+    inode_table[0].parent_inode = 1;
+    inode_table[0].permissions = 0b111;
+    inode_table[0].size = 0;
+    int root_block = allocate_block();
+    if (root_block != -1) {
+        inode_table[0].blocks[0] = root_block;
+    }
+    sb.free_inodes--;
+    current_dir_inode = 1;
+    strncpy(current_path, "/", MAX_PATH_LEN);
 
     for (int i = 0; i < MAX_FILES; i++) {
         root_directory[i].inode_number = 0; 
@@ -123,6 +144,8 @@ int create_file(const char* filename) {
     inode_table[inode_index].size = 0;
     inode_table[inode_index].blocks[0] = block_index;
     inode_table[inode_index].permissions = 0b111;
+    inode_table[inode_index].file_type = FILE_TYPE_REGULAR;
+    inode_table[inode_index].parent_inode = current_dir_inode;
     
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number == 0) {
@@ -323,8 +346,150 @@ void list_files() {
     debug_print("DEBUG: Listing files.");
     for (int i = 0; i < MAX_FILES; i++) {
         if (root_directory[i].inode_number != 0) {
-            print_to_screen(root_directory[i].filename);
-            print_to_screen("\n");
+            int inode_index = root_directory[i].inode_number - 1;
+            if (inode_table[inode_index].parent_inode == current_dir_inode) {
+                if (inode_table[inode_index].file_type == FILE_TYPE_DIRECTORY) {
+                    print_to_screen("[DIR] ");
+                }
+                print_to_screen(root_directory[i].filename);
+                print_to_screen("\n");
+            }
         }
     }
+}
+
+int create_directory(const char* dirname) {
+    int inode_index = allocate_inode();
+    if (inode_index == -1) {
+        debug_print("ERROR: No free inodes available.");
+        return -1;
+    }
+
+    int block_index = allocate_block();
+    if (block_index == -1) {
+        inode_table[inode_index].inode_number = 0;
+        debug_print("ERROR: No free disk space.");
+        return -1;
+    }
+
+    inode_table[inode_index].size = 0;
+    inode_table[inode_index].blocks[0] = block_index;
+    inode_table[inode_index].permissions = 0b111;
+    inode_table[inode_index].file_type = FILE_TYPE_DIRECTORY;
+    inode_table[inode_index].parent_inode = current_dir_inode;
+
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (root_directory[i].inode_number == 0) {
+            strncpy(root_directory[i].filename, dirname, MAX_FILENAME_LEN);
+            root_directory[i].inode_number = inode_index + 1;
+            debug_print("DEBUG: Directory created.");
+            return inode_index;
+        }
+    }
+
+    debug_print("ERROR: Directory table full.");
+    return -1;
+}
+
+int resolve_path(const char* path) {
+    if (strcmp(path, ".") == 0) {
+        return current_dir_inode;
+    }
+    if (strcmp(path, "..") == 0) {
+        int current_idx = current_dir_inode - 1;
+        if (current_idx >= 0 && current_idx < MAX_FILES) {
+            return inode_table[current_idx].parent_inode;
+        }
+        return 1;
+    }
+    if (strcmp(path, "/") == 0 || strcmp(path, "~") == 0) {
+        return 1;
+    }
+
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (root_directory[i].inode_number != 0) {
+            int inode_idx = root_directory[i].inode_number - 1;
+            if (inode_table[inode_idx].parent_inode == current_dir_inode &&
+                inode_table[inode_idx].file_type == FILE_TYPE_DIRECTORY &&
+                strcmp(root_directory[i].filename, path) == 0) {
+                return root_directory[i].inode_number;
+            }
+        }
+    }
+    return -1;
+}
+
+int change_directory(const char* path) {
+    if (path == NULL || path[0] == '\0') {
+        return -1;
+    }
+
+    if (strcmp(path, "~") == 0 || strcmp(path, "/") == 0) {
+        current_dir_inode = 1;
+        strncpy(current_path, "/", MAX_PATH_LEN);
+        return 0;
+    }
+
+    if (strcmp(path, "..") == 0) {
+        int current_idx = current_dir_inode - 1;
+        if (current_idx >= 0 && current_idx < MAX_FILES) {
+            uint32_t parent = inode_table[current_idx].parent_inode;
+            if (parent != current_dir_inode) {
+                current_dir_inode = parent;
+                if (current_dir_inode == 1) {
+                    strncpy(current_path, "/", MAX_PATH_LEN);
+                } else {
+                    int last_slash = -1;
+                    for (int i = strlen(current_path) - 2; i >= 0; i--) {
+                        if (current_path[i] == '/') {
+                            last_slash = i;
+                            break;
+                        }
+                    }
+                    if (last_slash > 0) {
+                        current_path[last_slash + 1] = '\0';
+                    } else {
+                        strncpy(current_path, "/", MAX_PATH_LEN);
+                    }
+                }
+                return 0;
+            }
+        }
+        return 0;
+    }
+
+    char path_copy[MAX_PATH_LEN];
+    strncpy(path_copy, path, MAX_PATH_LEN);
+    path_copy[MAX_PATH_LEN - 1] = '\0';
+
+    char* token = strtok(path_copy, "/");
+    uint32_t saved_dir = current_dir_inode;
+    char saved_path[MAX_PATH_LEN];
+    strncpy(saved_path, current_path, MAX_PATH_LEN);
+
+    while (token != NULL) {
+        int inode = resolve_path(token);
+        if (inode == -1) {
+            current_dir_inode = saved_dir;
+            strncpy(current_path, saved_path, MAX_PATH_LEN);
+            debug_print("ERROR: Directory not found.");
+            return -1;
+        }
+        
+        current_dir_inode = inode;
+        if (strcmp(token, "..") != 0 && strcmp(token, ".") != 0) {
+            if (current_path[strlen(current_path) - 1] != '/') {
+                strncat(current_path, "/", MAX_PATH_LEN - strlen(current_path) - 1);
+            }
+            strncat(current_path, token, MAX_PATH_LEN - strlen(current_path) - 1);
+        }
+        token = strtok(NULL, "/");
+    }
+
+    return 0;
+}
+
+void get_current_path(char* buffer, size_t size) {
+    strncpy(buffer, current_path, size);
+    buffer[size - 1] = '\0';
 }

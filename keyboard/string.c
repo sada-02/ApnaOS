@@ -76,3 +76,13 @@ char *strtok(char *str, const char *delim) {
     }
     return token;
 }
+
+char* strncat(char* dest, const char* src, size_t n) {
+    char* d = dest;
+    while (*d) d++;
+    while (n-- && *src) {
+        *d++ = *src++;
+    }
+    *d = '\0';
+    return dest;
+}

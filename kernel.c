@@ -227,9 +227,12 @@ void read_line(char *buffer, int max_length)
 
 void cli_loop(void) {
     char input[MAX_INPUT_LENGTH];
+    char cwd[MAX_PATH_LEN];
 
     while (1) {
-        print_to_screen("CLI> ");
+        get_current_path(cwd, MAX_PATH_LEN);
+        print_to_screen(cwd);
+        print_to_screen("> ");
         read_line(input, MAX_INPUT_LENGTH);
         char *token1 = strtok(input, " \t");
         if (!token1) {
@@ -316,6 +319,7 @@ void cli_loop(void) {
             char *operation = strtok(NULL, " \t");
             if (!operation) {
             print_to_screen("Usage: file <operation> <filename> [args]\n");
+            print_to_screen("Type 'help' for detailed command usage.\n");
             continue;
             }
 
@@ -410,8 +414,75 @@ void cli_loop(void) {
         else if (strcmp(token1, "ls") == 0) {
             list_files();
         }
+        else if (strcmp(token1, "cd") == 0) {
+            char *path = strtok(NULL, " \t");
+            if (!path) {
+                print_to_screen("Usage: cd <path>\n");
+                print_to_screen("  cd path/to/dir  - Navigate to directory\n");
+                print_to_screen("  cd ..           - Go to parent directory\n");
+                print_to_screen("  cd ~            - Go to root directory\n");
+                continue;
+            }
+            if (change_directory(path) == -1) {
+                print_to_screen("Error: Failed to change directory.\n");
+            }
+        }
+        else if (strcmp(token1, "mkdir") == 0) {
+            char *dirname = strtok(NULL, " \t");
+            if (!dirname) {
+                print_to_screen("Usage: mkdir <dirname>\n");
+                continue;
+            }
+            if (create_directory(dirname) == -1) {
+                print_to_screen("Error: Failed to create directory.\n");
+            } else {
+                print_to_screen("Directory created successfully.\n");
+            }
+        }
+        else if (strcmp(token1, "pwd") == 0) {
+            char path[MAX_PATH_LEN];
+            get_current_path(path, MAX_PATH_LEN);
+            print_to_screen(path);
+            print_to_screen("\n");
+        }
+        else if (strcmp(token1, "help") == 0) {
+            print_to_screen("\n=== ApnaOS Command Help ===\n\n");
+            print_to_screen("FILESYSTEM COMMANDS:\n");
+            print_to_screen("  ls                    - List files and directories in current directory\n");
+            print_to_screen("  pwd                   - Print current working directory\n");
+            print_to_screen("  cd <path>             - Change directory\n");
+            print_to_screen("      cd dirname        - Go to directory\n");
+            print_to_screen("      cd path/to/dir    - Navigate through path\n");
+            print_to_screen("      cd ..             - Go to parent directory\n");
+            print_to_screen("      cd ~ or cd /      - Go to root directory\n");
+            print_to_screen("  mkdir <dirname>       - Create a new directory\n");
+            print_to_screen("\n");
+            print_to_screen("FILE OPERATIONS:\n");
+            print_to_screen("  file make <filename>              - Create a new file\n");
+            print_to_screen("  file read <filename>              - Read file contents\n");
+            print_to_screen("  file write <filename> <data>      - Write data to file\n");
+            print_to_screen("  file append <filename> <data>     - Append data to file\n");
+            print_to_screen("  file rm <filename>                - Delete a file\n");
+            print_to_screen("  file chmod <filename> <perm>      - Change file permissions (e.g., 7=rwx)\n");
+            print_to_screen("  file ls                           - List files (same as ls)\n");
+            print_to_screen("\n");
+            print_to_screen("PROCESS COMMANDS:\n");
+            print_to_screen("  process <name> [priority]         - Queue a process\n");
+            print_to_screen("      Available: dummy1, dummy2, dummy3\n");
+            print_to_screen("  process syscall test [priority]   - Queue syscall test\n");
+            print_to_screen("  process process test [priority]   - Queue process test\n");
+            print_to_screen("  process start                     - Start scheduled processes\n");
+            print_to_screen("\n");
+            print_to_screen("SYSTEM COMMANDS:\n");
+            print_to_screen("  help                  - Show this help message\n");
+            print_to_screen("  exit                  - Shutdown the system (10 second countdown)\n");
+            print_to_screen("\n");
+        }
         else {
-            print_to_screen("Unknown command. Use 'process', 'file', 'ls', or 'exit'.\n");
+            print_to_screen("Unknown command: '");
+            print_to_screen(token1);
+            print_to_screen("'\n");
+            print_to_screen("Type 'help' for available commands.\n");
         }
     }
 }
