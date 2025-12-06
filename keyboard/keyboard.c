@@ -15,6 +15,7 @@ extern volatile int in_scroll_mode;
 #define KBD_STATUS_PORT 0x64
 #define KBD_SCANCODE_RELEASE 0x80
 #define HISTORY_SIZE 20
+#define MAX_USERS 16
 
 static char input_buffer[BUFFER_SIZE];
 volatile int input_ready = 0;
@@ -22,10 +23,11 @@ volatile char input_line[BUFFER_SIZE];
 static int buffer_index = 0;
 static int extended_code = 0;
 
-static char command_history[HISTORY_SIZE][BUFFER_SIZE];
-static int history_count = 0;
+static char command_history[MAX_USERS][HISTORY_SIZE][BUFFER_SIZE];
+static int history_count[MAX_USERS];
 static int history_index = -1;
 static int browsing_history = 0;
+static int current_history_user = 0;
 
 static const char scancode_to_ascii[128] = {
     0, 27, '1', '2', '3', '4', '5', '6',
@@ -68,9 +70,9 @@ void clear_current_input() {
 void restore_from_history(int hist_idx) {
     clear_current_input();
     int i = 0;
-    while (command_history[hist_idx][i] != '\0' && i < BUFFER_SIZE - 1) {
-        input_buffer[i] = command_history[hist_idx][i];
-        char buf[2] = {command_history[hist_idx][i], '\0'};
+    while (command_history[current_history_user][hist_idx][i] != '\0' && i < BUFFER_SIZE - 1) {
+        input_buffer[i] = command_history[current_history_user][hist_idx][i];
+        char buf[2] = {command_history[current_history_user][hist_idx][i], '\0'};
         print_to_screen(buf);
         i++;
     }
@@ -121,6 +123,32 @@ void keyboard_handler() {
                 scroll_down();
                 return;
             }
+            
+            if (scancode == 0x48 && !in_scroll_mode) {
+                if (history_count[current_history_user] > 0) {
+                    if (!browsing_history) {
+                        history_index = history_count[current_history_user] - 1;
+                        browsing_history = 1;
+                    } else if (history_index > 0) {
+                        history_index--;
+                    }
+                    restore_from_history(history_index);
+                }
+                return;
+            }
+            
+            if (scancode == 0x50 && !in_scroll_mode) {
+                if (browsing_history) {
+                    if (history_index < history_count[current_history_user] - 1) {
+                        history_index++;
+                        restore_from_history(history_index);
+                    } else {
+                        clear_current_input();
+                        browsing_history = 0;
+                    }
+                }
+                return;
+            }
             return;
         }
         
@@ -129,32 +157,6 @@ void keyboard_handler() {
                 exit_scroll_mode();
                 return;
             }
-        }
-        
-        if (scancode == 0x48) {
-            if (history_count > 0) {
-                if (!browsing_history) {
-                    history_index = history_count - 1;
-                    browsing_history = 1;
-                } else if (history_index > 0) {
-                    history_index--;
-                }
-                restore_from_history(history_index);
-            }
-            return;
-        }
-        
-        if (scancode == 0x50) {
-            if (browsing_history) {
-                if (history_index < history_count - 1) {
-                    history_index++;
-                    restore_from_history(history_index);
-                } else {
-                    clear_current_input();
-                    browsing_history = 0;
-                }
-            }
-            return;
         }
 
         char key = 0;
@@ -178,15 +180,15 @@ void keyboard_handler() {
                 input_buffer[buffer_index] = '\0';
                 
                 if (buffer_index > 0) {
-                    int hist_slot = history_count % HISTORY_SIZE;
+                    int hist_slot = history_count[current_history_user] % HISTORY_SIZE;
                     int i = 0;
                     while (input_buffer[i] != '\0' && i < BUFFER_SIZE - 1) {
-                        command_history[hist_slot][i] = input_buffer[i];
+                        command_history[current_history_user][hist_slot][i] = input_buffer[i];
                         i++;
                     }
-                    command_history[hist_slot][i] = '\0';
-                    if (history_count < HISTORY_SIZE) {
-                        history_count++;
+                    command_history[current_history_user][hist_slot][i] = '\0';
+                    if (history_count[current_history_user] < HISTORY_SIZE) {
+                        history_count[current_history_user]++;
                     }
                 }
                 
@@ -216,6 +218,17 @@ void keyboard_handler() {
 }
 
 void init_keyboard() {
+    for (int i = 0; i < MAX_USERS; i++) {
+        history_count[i] = 0;
+    }
     register_interrupt_handler(33, keyboard_handler);
     print_to_screen("DEBUG: Keyboard interrupt handler registered.\n");
+}
+
+void switch_history_context(int user_id) {
+    if (user_id >= 0 && user_id < MAX_USERS) {
+        current_history_user = user_id;
+        browsing_history = 0;
+        history_index = -1;
+    }
 }

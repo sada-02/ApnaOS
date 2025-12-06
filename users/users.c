@@ -7,6 +7,7 @@ extern int create_user_space(int user_id);
 extern void set_current_user_space(int user_id);
 extern void switch_to_root_space();
 extern void get_current_path(char* buffer, size_t size);
+extern void switch_history_context(int user_id);
 
 static User users[MAX_USERS];
 static int user_count = 0;
@@ -132,6 +133,7 @@ int switch_to_user(const char* username, const char* password) {
     
     current_user_index = user_idx;
     set_current_user_space(user_idx);
+    switch_history_context(user_idx);
     
     debug_print("DEBUG: Switched to user.");
     return 0;
@@ -140,6 +142,7 @@ int switch_to_user(const char* username, const char* password) {
 void switch_to_root() {
     current_user_index = 0;
     switch_to_root_space();
+    switch_history_context(0);
     debug_print("DEBUG: Switched to root.");
 }
 
