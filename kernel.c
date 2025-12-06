@@ -15,6 +15,7 @@ __attribute__((used)) static const struct {
 #include "keyboard/gdt.h"
 #include "keyboard/keyboard.h"
 #include "keyboard/string.h"
+#include "keyboard/io.h"
 
 #include "process/process.h"
 #include "process/syscall.h"   
@@ -121,6 +122,35 @@ void debug_int(uint32_t val)
 static uint16_t vga_row = 0;
 static uint16_t vga_col = 0;
 
+static volatile uint32_t timer_ticks = 0;
+
+void timer_callback(void)
+{
+    timer_ticks++;
+}
+
+void init_pit(uint32_t frequency)
+{
+    uint32_t divisor = 1193180 / frequency;
+    outb(0x43, 0x36);
+    outb(0x40, divisor & 0xFF);
+    outb(0x40, (divisor >> 8) & 0xFF);
+}
+
+void sleep_ms(uint32_t milliseconds)
+{
+    uint32_t ticks_to_wait = (milliseconds * 100) / 1000;
+    uint32_t start_ticks = timer_ticks;
+    while ((timer_ticks - start_ticks) < ticks_to_wait) {
+        asm volatile("hlt");
+    }
+}
+
+void qemu_shutdown(void)
+{
+    outw(0x604, 0x2000);
+}
+
 void scroll_screen(void)
 {
     volatile char *video = VGA_MEMORY;
@@ -147,6 +177,13 @@ void putchar(char c)
     if(c == '\n'){
         vga_row++;
         vga_col = 0;
+    } else if(c == '\b'){
+        if(vga_col > 0){
+            vga_col--;
+            int offset = (vga_row * VGA_WIDTH + vga_col) * 2;
+            video[offset] = ' ';
+            video[offset+1] = 0x07;
+        }
     } else {
         int offset = (vga_row * VGA_WIDTH + vga_col) * 2;
         video[offset] = c;
@@ -199,7 +236,17 @@ void cli_loop(void) {
             continue;
         }
         if (strcmp(token1, "exit") == 0) {
-            print_to_screen("Exiting kernel CLI...\n");
+            print_to_screen("Shutting down in 10 seconds...\n");
+            for (int i = 10; i > 0; i--) {
+                print_to_screen("Shutting down in ");
+                char countdown[4];
+                int_to_str(i, countdown);
+                print_to_screen(countdown);
+                print_to_screen(" sec...\n");
+                sleep_ms(1000);
+            }
+            print_to_screen("Shutdown complete. Goodbye!\n");
+            qemu_shutdown();
             break;
         }
         else if (strcmp(token1, "process") == 0) {
@@ -393,6 +440,8 @@ void kernel_main(uint32_t multiboot_info)
     irq_install();
     print_to_screen("DEBUG: IDT and IRQ handlers installed.\n");
     init_keyboard();
+    init_pit(100);
+    register_interrupt_handler(32, timer_callback);
     
     print_to_screen("DEBUG: Keyboard initialized. Press keys!\n");
     asm volatile("sti");
