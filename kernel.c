@@ -118,9 +118,23 @@ void debug_int(uint32_t val)
 #define VGA_WIDTH 80
 #define VGA_HEIGHT 25
 #define VGA_MEMORY ((volatile char *)0xB8000)
+#define SCROLLBACK_SIZE 1000
 
 static uint16_t vga_row = 0;
 static uint16_t vga_col = 0;
+
+typedef struct {
+    char text[VGA_WIDTH];
+    uint8_t attrs[VGA_WIDTH];
+} BufferLine;
+
+static BufferLine scrollback[SCROLLBACK_SIZE];
+static int scroll_write_pos = 0;
+static int scroll_lines_used = 0;
+static int scroll_view_offset = 0;
+volatile int in_scroll_mode = 0;
+
+static BufferLine saved_screen[VGA_HEIGHT];
 
 static volatile uint32_t timer_ticks = 0;
 
@@ -151,8 +165,29 @@ void qemu_shutdown(void)
     outw(0x604, 0x2000);
 }
 
+void save_top_line_to_scrollback(void)
+{
+    volatile char *video = VGA_MEMORY;
+    int pos = scroll_write_pos % SCROLLBACK_SIZE;
+    
+    for (int col = 0; col < VGA_WIDTH; col++) {
+        int offset = col * 2;
+        scrollback[pos].text[col] = video[offset];
+        scrollback[pos].attrs[col] = video[offset + 1];
+    }
+    
+    scroll_write_pos++;
+    if (scroll_lines_used < SCROLLBACK_SIZE) {
+        scroll_lines_used++;
+    }
+}
+
 void scroll_screen(void)
 {
+    if (in_scroll_mode) return;
+    
+    save_top_line_to_scrollback();
+    
     volatile char *video = VGA_MEMORY;
     for (int row = 1; row < VGA_HEIGHT; row++){
         for (int col = 0; col < VGA_WIDTH; col++){
@@ -171,8 +206,122 @@ void scroll_screen(void)
     vga_col = 0;
 }
 
+void save_current_screen(void)
+{
+    volatile char *video = VGA_MEMORY;
+    for (int row = 0; row < VGA_HEIGHT; row++) {
+        for (int col = 0; col < VGA_WIDTH; col++) {
+            int offset = (row * VGA_WIDTH + col) * 2;
+            saved_screen[row].text[col] = video[offset];
+            saved_screen[row].attrs[col] = video[offset + 1];
+        }
+    }
+}
+
+void restore_saved_screen(void)
+{
+    volatile char *video = VGA_MEMORY;
+    for (int row = 0; row < VGA_HEIGHT; row++) {
+        for (int col = 0; col < VGA_WIDTH; col++) {
+            int offset = (row * VGA_WIDTH + col) * 2;
+            video[offset] = saved_screen[row].text[col];
+            video[offset + 1] = saved_screen[row].attrs[col];
+        }
+    }
+}
+
+void display_scrollback(void)
+{
+    volatile char *video = VGA_MEMORY;
+    
+    int start_line = scroll_write_pos - VGA_HEIGHT - scroll_view_offset;
+    if (start_line < 0) start_line = 0;
+    
+    for (int row = 0; row < VGA_HEIGHT - 1; row++) {
+        int buffer_idx = (start_line + row) % SCROLLBACK_SIZE;
+        
+        if (start_line + row < scroll_write_pos) {
+            for (int col = 0; col < VGA_WIDTH; col++) {
+                int offset = (row * VGA_WIDTH + col) * 2;
+                video[offset] = scrollback[buffer_idx].text[col];
+                video[offset + 1] = scrollback[buffer_idx].attrs[col];
+            }
+        } else {
+            for (int col = 0; col < VGA_WIDTH; col++) {
+                int offset = (row * VGA_WIDTH + col) * 2;
+                video[offset] = saved_screen[row].text[col];
+                video[offset + 1] = saved_screen[row].attrs[col];
+            }
+        }
+    }
+    
+    const char *msg = " [SCROLL MODE] PgUp/PgDn: Navigate | ESC: Exit ";
+    int msg_len = 0;
+    while (msg[msg_len]) msg_len++;
+    
+    int start_col = (VGA_WIDTH - msg_len) / 2;
+    int status_row = VGA_HEIGHT - 1;
+    
+    for (int col = 0; col < VGA_WIDTH; col++) {
+        int offset = (status_row * VGA_WIDTH + col) * 2;
+        if (col >= start_col && col < start_col + msg_len) {
+            video[offset] = msg[col - start_col];
+            video[offset + 1] = 0x70;
+        } else {
+            video[offset] = ' ';
+            video[offset + 1] = 0x70;
+        }
+    }
+}
+
+void enter_scroll_mode(void)
+{
+    if (in_scroll_mode || scroll_lines_used == 0) return;
+    
+    in_scroll_mode = 1;
+    scroll_view_offset = 0;
+    save_current_screen();
+    display_scrollback();
+}
+
+void exit_scroll_mode(void)
+{
+    if (!in_scroll_mode) return;
+    
+    in_scroll_mode = 0;
+    scroll_view_offset = 0;
+    restore_saved_screen();
+}
+
+void scroll_up(void)
+{
+    if (!in_scroll_mode) return;
+    
+    int max_offset = scroll_lines_used - 1;
+    if (scroll_view_offset < max_offset) {
+        scroll_view_offset++;
+        display_scrollback();
+    }
+}
+
+void scroll_down(void)
+{
+    if (!in_scroll_mode) return;
+    
+    if (scroll_view_offset > 0) {
+        scroll_view_offset--;
+        display_scrollback();
+    } else {
+        exit_scroll_mode();
+    }
+}
+
 void putchar(char c)
 {
+    if (in_scroll_mode) {
+        exit_scroll_mode();
+    }
+    
     volatile char *video = VGA_MEMORY;
     if(c == '\n'){
         vga_row++;

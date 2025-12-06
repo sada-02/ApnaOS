@@ -5,6 +5,11 @@
 
 extern void debug_print(const char* messe);
 extern void print_to_screen(const char* message);
+extern void enter_scroll_mode(void);
+extern void exit_scroll_mode(void);
+extern void scroll_up(void);
+extern void scroll_down(void);
+extern volatile int in_scroll_mode;
 
 #define KBD_DATA_PORT 0x60
 #define KBD_STATUS_PORT 0x64
@@ -15,6 +20,7 @@ static char input_buffer[BUFFER_SIZE];
 volatile int input_ready = 0;
 volatile char input_line[BUFFER_SIZE];
 static int buffer_index = 0;
+static int extended_code = 0;
 
 static char command_history[HISTORY_SIZE][BUFFER_SIZE];
 static int history_count = 0;
@@ -82,13 +88,49 @@ void keyboard_handler() {
         shift_pressed = 0;
         return;
     }
+    
+    if ((scancode & KBD_SCANCODE_RELEASE) && extended_code) {
+        extended_code = 0;
+        return;
+    }
 
     if (scancode == 0x3A) {
         caps_lock_on = !caps_lock_on;
         return;
     }
+    
+    if (scancode == 0xE0) {
+        extended_code = 1;
+        return;
+    }
 
     if (!(scancode & KBD_SCANCODE_RELEASE)) {
+        if (extended_code) {
+            extended_code = 0;
+            
+            if (scancode == 0x49) {
+                if (!in_scroll_mode) {
+                    enter_scroll_mode();
+                } else {
+                    scroll_up();
+                }
+                return;
+            }
+            
+            if (scancode == 0x51) {
+                scroll_down();
+                return;
+            }
+            return;
+        }
+        
+        if (scancode == 0x01) {
+            if (in_scroll_mode) {
+                exit_scroll_mode();
+                return;
+            }
+        }
+        
         if (scancode == 0x48) {
             if (history_count > 0) {
                 if (!browsing_history) {
