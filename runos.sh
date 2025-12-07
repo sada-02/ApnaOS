@@ -35,8 +35,8 @@ echo "Compiling test processes..."
 gcc -m32 -ffreestanding -c test_processes/dummy1.c     -o bin/dummy1.o
 gcc -m32 -ffreestanding -c test_processes/dummy2.c     -o bin/dummy2.o
 gcc -m32 -ffreestanding -c test_processes/dummy3.c     -o bin/dummy3.o
-gcc -m32 -ffreestanding -c test_processes/process_test.c  -o bin/process_test.o
-gcc -m32 -ffreestanding -c test_processes/syscall_test.c  -o bin/syscall_test.o
+gcc -m32 -ffreestanding -c test_processes/simplesys.c  -o bin/simplesys.o
+gcc -m32 -ffreestanding -c test_processes/multisys.c   -o bin/multisys.o
 
 echo "Linking kernel binary..."
 gcc -m32 -nostdlib \
@@ -49,7 +49,7 @@ gcc -m32 -nostdlib \
     bin/process.o bin/syscall.o bin/rbtree.o \
     bin/keyboard.o bin/io.o bin/string.o bin/gdt.o bin/gdt_c.o \
     bin/idt.o bin/pic.o bin/interrupts.o \
-    bin/dummy1.o bin/dummy2.o bin/dummy3.o bin/process_test.o bin/syscall_test.o \
+    bin/dummy1.o bin/dummy2.o bin/dummy3.o bin/simplesys.o bin/multisys.o \
     -lgcc
 
 echo "Setting up GRUB boot structure..."

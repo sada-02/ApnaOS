@@ -35,8 +35,8 @@ __attribute__((used)) static const struct {
 extern void dummy_process_1(void);
 extern void dummy_process_2(void);
 extern void dummy_process_3(void);
-extern void syscall_test(void);
-extern void process_test(void);
+extern void simplesys(void);
+extern void multisys(void);
 
 int atoi(const char *s) {
     int num = 0;
@@ -407,7 +407,8 @@ void cli_loop(void) {
         else if (strcmp(token1, "process") == 0) {
             char *token2 = strtok(NULL, " \t");
             if (!token2) {
-                print_to_screen("Usage: process <dummy1|dummy2|dummy3|syscall test|process test|start> [priority]\n");
+                print_to_screen("Usage: process <name> [priority]\n");
+                print_to_screen("Available: dummy1, dummy2, dummy3, simplesys, multisys, start\n");
                 continue;
             }
             if (strcmp(token2, "start") == 0) {
@@ -420,25 +421,25 @@ void cli_loop(void) {
             char *token3 = strtok(NULL, " \t"); 
             char *token4 = strtok(NULL, " \t");
 
-            if (strcmp(token2, "syscall") == 0 && token3 && strcmp(token3, "test") == 0) {
-                if (token4) priority = atoi(token4);
-                print_to_screen("Queueing syscall_test process...\n");
+            if (strcmp(token2, "simplesys") == 0) {
+                if (token3) priority = atoi(token3);
+                print_to_screen("Starting simple fork syscall test...\n");
                 
                 create_process(
                     get_new_pid(),
-                    (uint32_t *) syscall_test,
+                    (uint32_t *) simplesys,
                     priority, 1, 2
                 );
                 continue;
             }
 
-            if (strcmp(token2, "process") == 0 && token3 && strcmp(token3, "test") == 0) {
-                if (token4) priority = atoi(token4);
-                print_to_screen("Queueing process_test process...\n");
+            if (strcmp(token2, "multisys") == 0) {
+                if (token3) priority = atoi(token3);
+                print_to_screen("Starting multiple forks syscall test...\n");
         
                 create_process(
                     get_new_pid(),
-                    (uint32_t *) process_test,
+                    (uint32_t *) multisys,
                     priority, 1, 2
                 );
                 continue;
@@ -465,6 +466,8 @@ void cli_loop(void) {
             }
             if (!found) {
                 print_to_screen("Error: Unknown process name.\n");
+                print_to_screen("Available: dummy1, dummy2, dummy3, simplesys, multisys\n");
+                print_to_screen("Type 'help' for more information.\n");
             }
         }
         else if (strcmp(token1, "file") == 0) {
@@ -666,8 +669,8 @@ void cli_loop(void) {
             print_to_screen("PROCESS COMMANDS:\n");
             print_to_screen("  process <name> [priority]         - Queue a process\n");
             print_to_screen("      Available: dummy1, dummy2, dummy3\n");
-            print_to_screen("  process syscall test [priority]   - Queue syscall test\n");
-            print_to_screen("  process process test [priority]   - Queue process test\n");
+            print_to_screen("  process simplesys [priority]      - Simple fork syscall test\n");
+            print_to_screen("  process multisys [priority]       - Multiple forks syscall test\n");
             print_to_screen("  process start                     - Start scheduled processes\n");
             print_to_screen("\n");
             print_to_screen("USER MANAGEMENT:\n");
